@@ -17,15 +17,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import ru.surf.learn2invest.R
 import ru.surf.learn2invest.databinding.FragmentProfileBinding
-import ru.surf.learn2invest.noui.database_components.entity.Profile
+import ru.surf.learn2invest.domain.cryptography.FingerprintAuthenticator
 import ru.surf.learn2invest.ui.components.alert_dialogs.parent.SimpleDialog
 import ru.surf.learn2invest.ui.components.screens.sign_in.SignINActivityActions
 import ru.surf.learn2invest.ui.components.screens.sign_in.SignInActivity
 import ru.surf.learn2invest.ui.components.screens.trading_password.TradingPasswordActivity
 import ru.surf.learn2invest.ui.components.screens.trading_password.TradingPasswordActivityActions
 import ru.surf.learn2invest.ui.main.MainActivity
-import ru.surf.learn2invest.utils.isBiometricAvailable
 import ru.surf.learn2invest.utils.setStatusBarColor
+import javax.inject.Inject
 
 /**
  * Фрагмент профиля в [HostActivity][ru.surf.learn2invest.ui.components.screens.host.HostActivity]
@@ -35,6 +35,8 @@ class ProfileFragment : Fragment() {
     private lateinit var binding: FragmentProfileBinding
     val viewModel: ProfileFragmentViewModel by viewModels()
 
+    @Inject
+    lateinit var fingerprintAuthenticator: FingerprintAuthenticator
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -50,12 +52,12 @@ class ProfileFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        viewModel.databaseRepository.profile.apply {
-            binding.apply {
-                biometryBtnSwitcher.isChecked = biometry
-                confirmDealBtnSwitcher.isChecked = tradingPasswordHash != null
-                changeTradingPasswordBtn.isVisible = tradingPasswordHash != null
-            }
+        binding.apply {
+            biometryBtnSwitcher.isChecked = viewModel.profileFlow.value.biometry
+            confirmDealBtnSwitcher.isChecked =
+                viewModel.profileFlow.value.tradingPasswordHash != null
+            changeTradingPasswordBtn.isVisible =
+                viewModel.profileFlow.value.tradingPasswordHash != null
         }
     }
 
@@ -72,20 +74,15 @@ class ProfileFragment : Fragment() {
             }
         }
 
-    private fun updateProfile(profile: Profile) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            viewModel.databaseRepository.insertAllProfile(profile)
-        }
-    }
 
     private fun initListeners() {
-        viewModel.databaseRepository.profile.let { profile ->
+        viewModel.profileFlow.value.let { profile ->
             binding.also { fr ->
                 fr.firstNameLastNameTV.text = profile.let { pr ->
                     "${pr.firstName}\n${pr.lastName}"
                 }
                 binding.biometryBtn.isVisible =
-                    isBiometricAvailable(activity = activity as AppCompatActivity)
+                    fingerprintAuthenticator.isBiometricAvailable(activity = activity as AppCompatActivity)
                 fr.deleteProfileTV.setOnClickListener {
                     SimpleDialog(
                         context = requireContext(),
@@ -95,7 +92,7 @@ class ProfileFragment : Fragment() {
                         isCancelable = true,
                         onPositiveButtonClick = {
                             lifecycleScope.launch(Dispatchers.IO) {
-                                viewModel.databaseRepository.clearAllTables()
+                                viewModel.clearDB()
                             }
                             activity?.finish()
                             activity?.startActivity(
@@ -117,14 +114,14 @@ class ProfileFragment : Fragment() {
                         negativeButtonTitleRes = R.string.no,
                         isCancelable = true,
                         onPositiveButtonClick = {
-                            val savedProfile = viewModel.databaseRepository.profile.copy(
+                            val savedProfile = viewModel.profileFlow.value.copy(
                                 fiatBalance = 0f,
                                 assetBalance = 0f
                             )
                             lifecycleScope.launch(Dispatchers.IO) {
-                                viewModel.databaseRepository.apply {
-                                    clearAllTables()
-                                    insertAllProfile(savedProfile)
+                                viewModel.clearDB()
+                                viewModel.updateProfile {
+                                    savedProfile
                                 }
                             }
                             Toast.makeText(
@@ -145,13 +142,19 @@ class ProfileFragment : Fragment() {
                 fr.biometryBtn.setOnClickListener {
 
                     if (fr.biometryBtnSwitcher.isChecked) {
-                        updateProfile(profile.copy(biometry = false))
-
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            viewModel.updateProfile {
+                                profile.copy(biometry = false)
+                            }
+                        }
                         fr.biometryBtnSwitcher.isChecked = false
                     } else {
                         viewModel.fingerprintAuthenticator.setSuccessCallback {
-                            updateProfile(profile.copy(biometry = true))
-
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                viewModel.updateProfile {
+                                    profile.copy(biometry = true)
+                                }
+                            }
                             fr.biometryBtnSwitcher.isChecked = true
                         }.setDesignBottomSheet(
                             title = ContextCompat.getString(

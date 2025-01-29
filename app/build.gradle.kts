@@ -3,25 +3,20 @@ plugins {
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.org.jetbrains.kotlin.kapt)
     id("kotlin-parcelize")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.hilt.android)
 }
 
 
 android {
     namespace = "ru.surf.learn2invest"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "ru.surf.learn2invest"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-        kapt {
-            arguments {
-                arg("room.schemaLocation", "$projectDir/schemas")
-            }
-        }
     }
 
     buildTypes {
@@ -31,9 +26,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
-        }
-        create("debug1") {
-            isDebuggable = true
         }
     }
 
@@ -53,24 +45,14 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.activity.v160alpha05)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.retrofit)
-    implementation(libs.converter.gson)
-    implementation(libs.gson)
-    implementation(libs.logging.interceptor)
-    // got using fingerprint
-    implementation(libs.androidx.biometric)
-    implementation(libs.biometric)
+    implementation(project(":presentation"))
+    implementation(project(":data"))
+    implementation(libs.androidx.activity)
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.lifecycle.process)
-    implementation(libs.coil.svg)
-    implementation(libs.coil)
-    kapt(libs.androidx.room.compiler)
     implementation(libs.androidx.room.common)
-    implementation(libs.androidx.room.ktx)
     implementation(libs.accompanist.permissions)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

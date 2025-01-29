@@ -2,7 +2,6 @@ package ru.surf.learn2invest.ui.components.screens.fragments.portfolio
 
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,17 +13,13 @@ import coil.ImageLoader
 import coil.load
 import dagger.hilt.android.qualifiers.ActivityContext
 import ru.surf.learn2invest.R
-import ru.surf.learn2invest.noui.database_components.entity.AssetInvest
+import ru.surf.learn2invest.data.network_components.RetrofitLinks.API_ICON
+import ru.surf.learn2invest.domain.domain_models.AssetInvest
 import ru.surf.learn2invest.ui.components.screens.fragments.asset_review.AssetReviewActivity
 import ru.surf.learn2invest.utils.AssetConstants
-import ru.surf.learn2invest.utils.RetrofitLinks.API_ICON
 import ru.surf.learn2invest.utils.getWithCurrency
 import ru.surf.learn2invest.utils.round
-import java.math.BigDecimal
-import java.math.RoundingMode
-import java.util.Locale
 import javax.inject.Inject
-import kotlin.math.round
 
 
 class PortfolioAdapter @Inject constructor(

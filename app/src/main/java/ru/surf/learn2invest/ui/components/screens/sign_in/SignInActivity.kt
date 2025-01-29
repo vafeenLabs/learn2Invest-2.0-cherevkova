@@ -2,7 +2,6 @@ package ru.surf.learn2invest.ui.components.screens.sign_in
 
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -11,18 +10,16 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.surf.learn2invest.R
 import ru.surf.learn2invest.databinding.ActivitySignInBinding
-import ru.surf.learn2invest.noui.cryptography.PasswordHasher
+import ru.surf.learn2invest.domain.cryptography.PasswordHasher
 import ru.surf.learn2invest.utils.gotoCenter
-import ru.surf.learn2invest.utils.isBiometricAvailable
 import ru.surf.learn2invest.utils.setNavigationBarColor
 import ru.surf.learn2invest.utils.setStatusBarColor
 import ru.surf.learn2invest.utils.tapOn
-import ru.surf.learn2invest.utils.verifyPIN
+import javax.inject.Inject
 
 /**
  * Активити ввода PIN-кода.
@@ -40,6 +37,8 @@ class SignInActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySignInBinding
     private val viewModel: SignInActivityViewModel by viewModels()
 
+    @Inject
+    lateinit var passwordHasher: PasswordHasher
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -57,7 +56,7 @@ class SignInActivity : AppCompatActivity() {
         paintDots()
         when (intent.action) {
             SignINActivityActions.SignIN.action -> {
-                if (viewModel.databaseRepository.profile.biometry) {
+                if (viewModel.profileFlow.value.biometry) {
                     viewModel.fingerprintAuthenticator.auth(
                         lifecycleCoroutineScope = lifecycleScope,
                         activity = this@SignInActivity
@@ -81,29 +80,26 @@ class SignInActivity : AppCompatActivity() {
         }
     }
 
-    private fun animatePINCode(truth: Boolean, needReturn: Boolean = false): Job {
-        return lifecycleScope.launch(Dispatchers.Main) {
-            delay(100)
-
-            binding.apply {
-                dot1.gotoCenter(
-                    truePIN = truth,
-                    needReturn = needReturn,
-                    lifecycleScope = lifecycleScope,
-                    doAfter = { viewModel.unBlockKeyBoard() }
-                )
-                dot2.gotoCenter(
-                    truePIN = truth, needReturn = needReturn, lifecycleScope = lifecycleScope
-                )
-                dot3.gotoCenter(
-                    truePIN = truth, needReturn = needReturn, lifecycleScope = lifecycleScope
-                )
-                dot4.gotoCenter(
-                    truePIN = truth, needReturn = needReturn, lifecycleScope = lifecycleScope
-                )
-            }
-            delay(800)
+    private suspend fun animatePINCode(truth: Boolean, needReturn: Boolean = false) {
+        delay(100)
+        binding.apply {
+            dot1.gotoCenter(
+                truePIN = truth,
+                needReturn = needReturn,
+                lifecycleScope = lifecycleScope,
+                doAfter = { viewModel.unBlockKeyBoard() }
+            )
+            dot2.gotoCenter(
+                truePIN = truth, needReturn = needReturn, lifecycleScope = lifecycleScope
+            )
+            dot3.gotoCenter(
+                truePIN = truth, needReturn = needReturn, lifecycleScope = lifecycleScope
+            )
+            dot4.gotoCenter(
+                truePIN = truth, needReturn = needReturn, lifecycleScope = lifecycleScope
+            )
         }
+        delay(800)
     }
 
     private fun changeColorOfFourDots(
@@ -188,11 +184,9 @@ class SignInActivity : AppCompatActivity() {
                     when (intent.action) {
 
                         SignINActivityActions.SignIN.action -> {
-                            val isAuthSucceeded = verifyPIN(
-                                user = databaseRepository.profile,
-                                pinCode
-                            )
-                            animatePINCode(isAuthSucceeded).invokeOnCompletion {
+                            lifecycleScope.launch(Dispatchers.Main) {
+                                val isAuthSucceeded = verifyPIN()
+                                animatePINCode(isAuthSucceeded)
                                 if (isAuthSucceeded) onAuthenticationSucceeded(
                                     action = intent.action ?: "",
                                     context = this@SignInActivity,
@@ -215,26 +209,31 @@ class SignInActivity : AppCompatActivity() {
                                 }
 
                                 firstPin == pinCode -> {
-                                    databaseRepository.profile =
-                                        databaseRepository.profile.copy(
-                                            hash = PasswordHasher(
-                                                firstName = databaseRepository.profile.firstName,
-                                                lastName = databaseRepository.profile.lastName
-                                            ).passwordToHash(pinCode)
-                                        )
-                                    userDataIsChanged = true
-                                    animatePINCode(truth = true).invokeOnCompletion {
-                                        if (isBiometricAvailable(activity = this@SignInActivity)) {
-                                            viewModel.fingerprintAuthenticator.setSuccessCallback {
-                                                databaseRepository.profile =
-                                                    databaseRepository.profile.copy(
-                                                        biometry = true
-                                                    )
-
-                                                onAuthenticationSucceeded(
-                                                    action = intent.action ?: "",
-                                                    context = this@SignInActivity,
+                                    lifecycleScope.launch(Dispatchers.Main) {
+                                        viewModel.updateProfile {
+                                            it.copy(
+                                                hash = passwordHasher.passwordToHash(
+                                                    firstName = it.firstName,
+                                                    lastName = it.lastName,
+                                                    password = pinCode
                                                 )
+                                            )
+                                        }
+                                        animatePINCode(truth = true)
+                                        if (viewModel.fingerprintAuthenticator.isBiometricAvailable(
+                                                activity = this@SignInActivity
+                                            )
+                                        ) {
+                                            viewModel.fingerprintAuthenticator.setSuccessCallback {
+                                                lifecycleScope.launch {
+                                                    viewModel.updateProfile {
+                                                        it.copy(biometry = true)
+                                                    }
+                                                    onAuthenticationSucceeded(
+                                                        action = intent.action ?: "",
+                                                        context = this@SignInActivity,
+                                                    )
+                                                }
                                             }.setCancelCallback {
                                                 onAuthenticationSucceeded(
                                                     action = intent.action ?: "",
@@ -254,9 +253,10 @@ class SignInActivity : AppCompatActivity() {
                                 }
 
                                 firstPin != pinCode -> {
-                                    pinCode = ""
-
-                                    animatePINCode(truth = false)
+                                    lifecycleScope.launch(Dispatchers.Main) {
+                                        pinCode = ""
+                                        animatePINCode(truth = false)
+                                    }
                                 }
                             }
 
@@ -266,13 +266,13 @@ class SignInActivity : AppCompatActivity() {
                             when {
                                 // вводит старый пароль
                                 firstPin == "" && !isVerified -> {
-                                    //если ввел верно
-                                    isVerified =
-                                        verifyPIN(user = databaseRepository.profile, pinCode)
-                                    pinCode = ""
-                                    animatePINCode(
-                                        truth = isVerified, needReturn = true
-                                    ).invokeOnCompletion {
+                                    lifecycleScope.launch(Dispatchers.Main) {
+                                        //если ввел верно
+                                        isVerified = verifyPIN()
+                                        pinCode = ""
+                                        animatePINCode(
+                                            truth = isVerified, needReturn = true
+                                        )
                                         if (isVerified) binding.enterPin.text =
                                             ContextCompat.getString(
                                                 this@SignInActivity,
@@ -285,12 +285,11 @@ class SignInActivity : AppCompatActivity() {
 
                                 //вводит новый
                                 firstPin == "" && isVerified -> {
-                                    firstPin = pinCode
-                                    pinCode = ""
                                     lifecycleScope.launch(Dispatchers.Main) {
+                                        firstPin = pinCode
+                                        pinCode = ""
                                         delay(500)
                                         paintDots()
-                                    }.invokeOnCompletion {
                                         binding.enterPin.text =
                                             ContextCompat.getString(
                                                 this@SignInActivity,
@@ -303,25 +302,25 @@ class SignInActivity : AppCompatActivity() {
 
                                 // повторяет
                                 firstPin != "" && isVerified -> {
-                                    val truth = pinCode == firstPin
-                                    if (truth) {
-                                        viewModel.userDataIsChanged = true
-                                        databaseRepository.profile =
-                                            databaseRepository.profile.copy(
-                                                hash = PasswordHasher(
-                                                    firstName = databaseRepository.profile.firstName,
-                                                    lastName = databaseRepository.profile.lastName
-                                                ).passwordToHash(viewModel.pinCode)
-                                            )
-                                        Log.d(
-                                            "profile",
-                                            "sign 328 = profile = ${databaseRepository.profile}"
-                                        )
-                                    }
+                                    lifecycleScope.launch(Dispatchers.Main) {
+                                        val truth = pinCode == firstPin
+                                        if (truth) {
+                                            viewModel.userDataIsChanged = true
+                                            viewModel.updateProfile {
+                                                it.copy(
+                                                    hash = passwordHasher.passwordToHash(
+                                                        firstName = it.firstName,
+                                                        lastName = it.lastName,
+                                                        password = viewModel.pinCode
+                                                    )
+                                                )
+                                            }
 
-                                    animatePINCode(
-                                        truth = truth, needReturn = true
-                                    ).invokeOnCompletion {
+                                        }
+
+                                        animatePINCode(
+                                            truth = truth, needReturn = true
+                                        )
                                         pinCode = ""
                                         if (truth) onAuthenticationSucceeded(
                                             action = intent.action ?: "",
@@ -340,11 +339,16 @@ class SignInActivity : AppCompatActivity() {
     private fun initListeners() {
         viewModel.apply {
             fingerprintAuthenticator.setSuccessCallback {
-                if (intent.action == SignINActivityActions.SignUP.action) {
-                    databaseRepository.profile = databaseRepository.profile.copy(biometry = true)
-                    userDataIsChanged = true
-                }
-                animatePINCode(truth = true).invokeOnCompletion {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    if (intent.action == SignINActivityActions.SignUP.action) {
+
+                        viewModel.updateProfile {
+                            it.copy(biometry = true)
+                        }
+                        userDataIsChanged = true
+
+                    }
+                    animatePINCode(truth = true)
                     onAuthenticationSucceeded(
                         action = intent.action ?: "",
                         context = this@SignInActivity,
@@ -388,7 +392,7 @@ class SignInActivity : AppCompatActivity() {
                 }
 
                 fingerprint.isVisible =
-                    if (isBiometricAvailable(activity = this@SignInActivity) && databaseRepository.profile.biometry) {
+                    if (viewModel.fingerprintAuthenticator.isBiometricAvailable(activity = this@SignInActivity) && viewModel.profileFlow.value.biometry) {
                         fingerprint.setOnClickListener {
                             viewModel.fingerprintAuthenticator.auth(
                                 lifecycleCoroutineScope = lifecycleScope,

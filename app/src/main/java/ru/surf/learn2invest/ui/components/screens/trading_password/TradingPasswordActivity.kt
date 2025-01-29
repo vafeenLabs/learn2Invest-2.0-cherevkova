@@ -9,7 +9,10 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import ru.surf.learn2invest.R
 import ru.surf.learn2invest.databinding.ActivityTradingPasswordBinding
 import ru.surf.learn2invest.utils.Icons.error
@@ -21,7 +24,6 @@ import ru.surf.learn2invest.utils.isThisContainsSequenceOrEmpty
 import ru.surf.learn2invest.utils.setNavigationBarColor
 import ru.surf.learn2invest.utils.setStatusBarColor
 import ru.surf.learn2invest.utils.showKeyboard
-import ru.surf.learn2invest.utils.verifyTradingPassword
 
 /**
  * Активити ввода торгового пароля для подтверждения сделок
@@ -131,9 +133,9 @@ class TradingPasswordActivity : AppCompatActivity() {
             imageRule4.setImageDrawable(
                 when (viewModel.action) {
                     TradingPasswordActivityActions.RemoveTradingPassword -> {
-                        if (("${passwordEdit.text}" == "${passwordConfirm.text}") && verifyTradingPassword(
-                                user = viewModel.databaseRepository.profile,
-                                password = "${passwordEdit.text}"
+                        if (("${passwordEdit.text}" == "${passwordConfirm.text}") && viewModel.verifyTradingPasswordUseCase.invoke(
+                                user = viewModel.profileFlow.value,
+                                tradingPassword = "${passwordEdit.text}"
                             )
                         ) ok else error
                     }
@@ -153,9 +155,9 @@ class TradingPasswordActivity : AppCompatActivity() {
             )
 
             imageRule5.setImageDrawable(
-                if (verifyTradingPassword(
-                        user = viewModel.databaseRepository.profile,
-                        password = "${passwordLast.text}"
+                if (viewModel.verifyTradingPasswordUseCase.invoke(
+                        user = viewModel.profileFlow.value,
+                        tradingPassword = "${passwordLast.text}"
                     )
                 ) ok else error
             )
@@ -295,11 +297,10 @@ class TradingPasswordActivity : AppCompatActivity() {
             })
 
             buttonDoTrading.setOnClickListener {
-                viewModel.apply {
-                    saveTradingPassword(password = "${passwordConfirm.text}")
-                    updateProfile()
+                lifecycleScope.launch(Dispatchers.Main) {
+                    viewModel.saveTradingPassword(password = "${passwordConfirm.text}")
+                    this@TradingPasswordActivity.finish()
                 }
-                this@TradingPasswordActivity.finish()
             }
         }
     }
