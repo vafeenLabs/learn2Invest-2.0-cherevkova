@@ -32,6 +32,7 @@ class AssetReviewActivity : AppCompatActivity() {
     private lateinit var disposable: Disposable
     private var isOverviewSelected = true
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -90,12 +91,7 @@ class AssetReviewActivity : AppCompatActivity() {
         disposable = imageLoader.enqueue(request)
 
         binding.buyAssetBtn.setOnClickListener {
-            BuyDialog(
-                dialogContext = this,
-                id = id,
-                name = name,
-                symbol = symbol
-            ).also {
+            BuyDialog(this, id, name, symbol).also {
                 it.show(supportFragmentManager, it.tag)
             }
         }
