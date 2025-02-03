@@ -3,12 +3,13 @@ accompanistPermissions = "0.31.1-alpha" # Accompanist Permissions
 agp = "8.8.0" # Android Gradle Plugin
 biometric = "1.1.0" # AndroidX Biometric
 hiltAndroid = "2.52" # Hilt Android
-kotlin = "1.9.23" # Kotlin
+kotlin = "1.9.24" # Kotlin
 coreKtx = "1.15.0" # AndroidX Core KTX
 appcompat = "1.7.0" # AndroidX AppCompat
 material = "1.12.0" # Material Design
 activity = "1.10.0" # AndroidX Activity
 constraintlayout = "2.2.0" # ConstraintLayout
+espressoIntent = "3.6.1" # Espresso Intents
 
 # Room
 mpandroidchart = "v3.1.0" # MPAndroidChart
@@ -38,6 +39,8 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" } # Material Design
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" } # AndroidX Activity
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" } # ConstraintLayout
+
+# Room dependencies
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomCommon" } # Room Compiler
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomCommon" } # Room Runtime
 androidx-room-common = { group = "androidx.room", name = "room-common", version.ref = "roomCommon" } # Room Common
@@ -56,11 +59,11 @@ coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" } # Coil
 junit = { group = "junit", name = "junit", version.ref = "junit" } # JUnit
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" } # AndroidX JUnit
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" } # Espresso Core
-
+androidx-espresso-intent = { group = "androidx.test.espresso.intent", name = "espresso-intent", version.ref = "espressoIntent" }
 
 [plugins]
-androidApplication = { id = "com.android.application", version.ref = "agp" } # Android Application Plugin
-jetbrainsKotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" } # Kotlin Android Plugin
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 # kapt for Room
 org-jetbrains-kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" } # Kotlin KAPT Plugin
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndroid" } # Hilt Android Plugin
