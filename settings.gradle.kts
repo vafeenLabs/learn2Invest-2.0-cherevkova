@@ -21,7 +21,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Learn2Invest"
-include(":App")
+include(":app")
 include(":domain")
 include(":data")
 include(":presentation")
