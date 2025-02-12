@@ -124,7 +124,8 @@ https://github.com/vafeen/learn2Invest/assets/67644124/7639e883-1c0b-4ded-ad49-9
 
 
 ### Обзор актива 
-![изображение](https://github.com/vafeen/learn2Invest/assets/67644124/7442f586-138a-4a63-8072-a7331a194ab4) ![изображение](https://github.com/vafeen/learn2Invest/assets/67644124/88dd3a17-9b8a-4b88-990b-bd2e51e36c7b)
+![изображение](https://github.com/user-attachments/assets/0ab824d0-aa93-45a7-aa49-b5bc94905d36) ![image](https://github.com/user-attachments/assets/51c45527-09a0-4c29-bd24-ec4d72dae904)
+
 ![изображение](https://github.com/vafeen/learn2Invest/assets/67644124/21198a3d-7d33-4aaf-b57f-b773375c152f) ![изображение](https://github.com/vafeen/learn2Invest/assets/67644124/a35bb0c9-c80e-43ce-998c-b5a50c740161)
 ![изображение](https://github.com/vafeen/learn2Invest/assets/67644124/c09205b3-4286-4709-9719-81d40bf274a5)
 
