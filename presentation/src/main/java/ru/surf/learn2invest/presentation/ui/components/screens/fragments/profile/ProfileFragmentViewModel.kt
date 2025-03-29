@@ -2,7 +2,6 @@ package ru.surf.learn2invest.presentation.ui.components.screens.fragments.profil
 
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,7 +11,6 @@ import ru.surf.learn2invest.domain.database.usecase.ClearAppDatabaseUseCase
 import ru.surf.learn2invest.domain.domain_models.Profile
 import ru.surf.learn2invest.domain.services.ProfileManager
 import ru.surf.learn2invest.domain.utils.launchIO
-import ru.surf.learn2invest.domain.utils.withContextIO
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignINActivityActions
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignInActivity
@@ -64,25 +62,6 @@ internal class ProfileFragmentViewModel @Inject constructor(
             TradingPasswordActivity::class.java
         ).also { it.action = tradingPasswordActivityActions.action })
 
-
-    /**
-     * Сбрасывает статистику профиля пользователя, обнуляя балансы.
-     *
-     * @param context Контекст для отображения уведомления.
-     */
-    suspend fun resetStats(context: Context) {
-        val savedProfile = profileFlow.value.copy(
-            fiatBalance = 0f,
-            assetBalance = 0f
-        )
-        withContextIO {
-            clearAppDatabaseUseCase()
-            updateProfile {
-                savedProfile
-            }
-        }
-        Toast.makeText(context, context.getString(R.string.stat_reset), Toast.LENGTH_LONG).show()
-    }
 
     /**
      * Изменяет настройку подтверждения транзакции, в зависимости от наличия пароля для торговли.

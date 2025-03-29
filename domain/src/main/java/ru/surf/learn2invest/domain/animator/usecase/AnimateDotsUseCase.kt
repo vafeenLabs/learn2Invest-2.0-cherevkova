@@ -13,12 +13,7 @@ import ru.surf.learn2invest.domain.utils.horizontalBias
 import javax.inject.Inject
 
 /**
- * Метод анимирования движения точки на [SignINActivityActions][ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignINActivityActions] к центру.
- *
- * @param truePIN Указывает, является ли PIN-код верным.
- * @param needReturn Указывает, нужно ли вернуть точки на свои места после анимации.
- * @param lifecycleScope Область видимости для выполнения асинхронных операций.
- * @param doAfter Callback для выполнения действий после завершения анимации.
+ * Юзкейс анимирования движения точки от PIN-кода к центру.
  */
 class AnimateDotsUseCase @Inject constructor(private val customAnimator: CustomAnimator) {
 
