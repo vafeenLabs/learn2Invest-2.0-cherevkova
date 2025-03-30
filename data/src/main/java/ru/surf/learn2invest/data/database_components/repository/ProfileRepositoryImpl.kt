@@ -7,8 +7,7 @@ import ru.surf.learn2invest.data.database_components.dao.ProfileDao
 import ru.surf.learn2invest.domain.database.repository.ProfileRepository
 import ru.surf.learn2invest.domain.domain_models.Profile
 import javax.inject.Inject
-import javax.inject.Singleton
-@Singleton
+
 internal class ProfileRepositoryImpl @Inject constructor(
     private val profileDao: ProfileDao,
     private val profileConverter: ProfileConverter

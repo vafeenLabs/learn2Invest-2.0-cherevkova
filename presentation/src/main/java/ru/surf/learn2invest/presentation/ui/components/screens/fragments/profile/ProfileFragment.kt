@@ -23,7 +23,7 @@ import ru.surf.learn2invest.presentation.utils.setStatusBarColor
 @AndroidEntryPoint
 internal class ProfileFragment : Fragment() {
     private lateinit var binding: FragmentProfileBinding
-    val viewModel: ProfileFragmentViewModel by viewModels()
+    private val viewModel: ProfileFragmentViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -49,7 +49,8 @@ internal class ProfileFragment : Fragment() {
 
     private fun initListeners() {
         binding.also { fr ->
-            fr.biometryBtn.isVisible = viewModel.isBiometricAvailable(activity = activity as AppCompatActivity)
+            fr.biometryBtn.isVisible =
+                viewModel.isBiometricAvailable(activity = activity as AppCompatActivity)
             fr.deleteProfileTV.setOnClickListener {
                 DeleteProfileDialog().showDialog(parentFragmentManager)
             }

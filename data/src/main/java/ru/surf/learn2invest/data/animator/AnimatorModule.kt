@@ -3,11 +3,11 @@ package ru.surf.learn2invest.data.animator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
+import dagger.hilt.android.components.ViewModelComponent
 import ru.surf.learn2invest.domain.animator.CustomAnimator
 
 @Module
-@InstallIn(SingletonComponent::class)
+@InstallIn(ViewModelComponent::class)
 internal class AnimatorModule {
 
     @Provides

@@ -11,12 +11,10 @@ import kotlinx.coroutines.launch
 import ru.surf.learn2invest.domain.cryptography.FingerprintAuthenticator
 import java.util.concurrent.Executor
 import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Реализация интерфейса FingerprintAuthenticator для аутентификации пользователя с помощью отпечатка пальца.
  */
-@Singleton
 internal class FingerprintAuthenticatorImpl @Inject constructor() : FingerprintAuthenticator {
     /**
      * Проверяет, доступно ли биометрическое аппаратное обеспечение на устройстве.

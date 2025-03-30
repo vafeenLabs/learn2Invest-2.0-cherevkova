@@ -7,10 +7,8 @@ import ru.surf.learn2invest.data.database_components.dao.AssetBalanceHistoryDao
 import ru.surf.learn2invest.domain.database.repository.AssetBalanceHistoryRepository
 import ru.surf.learn2invest.domain.domain_models.AssetBalanceHistory
 import javax.inject.Inject
-import javax.inject.Singleton
 
 
-@Singleton
 internal class AssetBalanceHistoryRepositoryImpl @Inject constructor(
     private val assetBalanceHistoryDao: AssetBalanceHistoryDao,
     private val assetBalanceHistoryConverter: AssetBalanceHistoryConverter

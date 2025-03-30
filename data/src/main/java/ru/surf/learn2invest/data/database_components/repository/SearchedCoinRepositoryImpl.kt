@@ -7,9 +7,7 @@ import ru.surf.learn2invest.data.database_components.dao.SearchedCoinDao
 import ru.surf.learn2invest.domain.database.repository.SearchedCoinRepository
 import ru.surf.learn2invest.domain.domain_models.SearchedCoin
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 internal class SearchedCoinRepositoryImpl @Inject constructor(
     private val searchedCoinDao: SearchedCoinDao,
     private val searchedCoinConverter: SearchedCoinConverter

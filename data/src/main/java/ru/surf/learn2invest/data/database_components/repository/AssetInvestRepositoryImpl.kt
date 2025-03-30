@@ -8,9 +8,7 @@ import ru.surf.learn2invest.data.database_components.dao.AssetInvestDao
 import ru.surf.learn2invest.domain.database.repository.AssetInvestRepository
 import ru.surf.learn2invest.domain.domain_models.AssetInvest
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 internal class AssetInvestRepositoryImpl @Inject constructor(
     private val assetInvestDao: AssetInvestDao,
     private val assetInvestConverter: AssetInvestConverter,

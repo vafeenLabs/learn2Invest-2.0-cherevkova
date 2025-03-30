@@ -7,9 +7,7 @@ import coil.request.Disposable
 import ru.surf.learn2invest.domain.services.coin_icon_loader.CoinIconLoader
 import ru.surf.learn2invest.resources.R
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 internal class CoinIconLoaderImpl @Inject constructor(private val imageLoader: ImageLoader) :
     CoinIconLoader {
     override fun loadIcon(imageView: ImageView, symbol: String): CoinIconLoader.Request =

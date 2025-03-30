@@ -13,7 +13,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import ru.surf.learn2invest.domain.cryptography.PasswordHasher
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.domain.utils.tapOn
@@ -22,7 +21,6 @@ import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.ActivitySignInBinding
 import ru.surf.learn2invest.presentation.utils.setNavigationBarColor
 import ru.surf.learn2invest.presentation.utils.setStatusBarColor
-import javax.inject.Inject
 
 /**
  * Активити ввода PIN-кода.
@@ -40,9 +38,6 @@ internal class SignInActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySignInBinding
     private val viewModel: SignInActivityViewModel by viewModels()
     private lateinit var dots: DotsState<Drawable>
-
-    @Inject
-    lateinit var passwordHasher: PasswordHasher
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -230,7 +225,7 @@ internal class SignInActivity : AppCompatActivity() {
                     if (truth) {
                         viewModel.updateProfile {
                             it.copy(
-                                hash = passwordHasher.passwordToHash(
+                                hash = viewModel.passwordHasher.passwordToHash(
                                     firstName = it.firstName,
                                     lastName = it.lastName,
                                     password = pin
@@ -294,7 +289,7 @@ internal class SignInActivity : AppCompatActivity() {
                     withContextIO {
                         viewModel.updateProfile {
                             it.copy(
-                                hash = passwordHasher.passwordToHash(
+                                hash = viewModel.passwordHasher.passwordToHash(
                                     firstName = it.firstName,
                                     lastName = it.lastName,
                                     password = pin

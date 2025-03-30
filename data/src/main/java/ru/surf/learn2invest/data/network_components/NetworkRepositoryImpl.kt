@@ -10,13 +10,11 @@ import ru.surf.learn2invest.domain.network.NetworkRepository
 import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.RetrofitLinks
 import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Репозиторий для получения данных с API
  */
 
-@Singleton
 internal class NetworkRepositoryImpl @Inject constructor(
     private val coinAPIService: CoinAPIService,
     private val augmentedCoinReviewConverter: AugmentedCoinReviewConverter,

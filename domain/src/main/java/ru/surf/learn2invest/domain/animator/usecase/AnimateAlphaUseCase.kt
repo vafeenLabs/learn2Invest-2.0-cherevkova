@@ -3,9 +3,7 @@ package ru.surf.learn2invest.domain.animator.usecase
 import android.view.View
 import ru.surf.learn2invest.domain.animator.CustomAnimator
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 class AnimateAlphaUseCase @Inject constructor(private val customAnimator: CustomAnimator) {
     operator fun invoke(
         view: View,

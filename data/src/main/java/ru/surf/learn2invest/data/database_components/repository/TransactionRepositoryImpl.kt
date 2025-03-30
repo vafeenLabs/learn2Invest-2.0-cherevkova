@@ -7,9 +7,7 @@ import ru.surf.learn2invest.data.database_components.dao.TransactionDao
 import ru.surf.learn2invest.domain.database.repository.TransactionRepository
 import ru.surf.learn2invest.domain.domain_models.Transaction
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 internal class TransactionRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
     private val transactionConverter: TransactionConverter

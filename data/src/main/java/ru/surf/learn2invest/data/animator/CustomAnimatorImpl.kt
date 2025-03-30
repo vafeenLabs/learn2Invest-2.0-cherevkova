@@ -7,9 +7,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import ru.surf.learn2invest.domain.animator.CustomAnimator
 import ru.surf.learn2invest.domain.utils.animatorListener
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 internal class CustomAnimatorImpl @Inject constructor() : CustomAnimator {
 
     override fun animateViewAlpha(

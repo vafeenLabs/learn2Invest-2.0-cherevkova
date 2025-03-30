@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.animator.usecase.AnimateDotsUseCase
 import ru.surf.learn2invest.domain.cryptography.FingerprintAuthenticator
+import ru.surf.learn2invest.domain.cryptography.PasswordHasher
 import ru.surf.learn2invest.domain.cryptography.usecase.VerifyPINUseCase
 import ru.surf.learn2invest.domain.domain_models.Profile
 import ru.surf.learn2invest.domain.services.ProfileManager
@@ -31,6 +32,7 @@ internal class SignInActivityViewModel @Inject constructor(
     var fingerprintAuthenticator: FingerprintAuthenticator,
     private val verifyPINUseCase: VerifyPINUseCase,
     private val animateDotsUseCase: AnimateDotsUseCase,
+     val passwordHasher: PasswordHasher,
 ) : ViewModel() {
 
     /**
