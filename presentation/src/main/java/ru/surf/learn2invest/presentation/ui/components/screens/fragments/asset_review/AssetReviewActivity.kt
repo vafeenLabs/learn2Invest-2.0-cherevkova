@@ -1,5 +1,6 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_review
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
@@ -13,7 +14,7 @@ import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.buy_dialog.
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.sell_dialog.SellDialog
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_overview.AssetOverviewFragment
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.subhistory.SubHistoryFragment
-import ru.surf.learn2invest.presentation.utils.AssetConstants
+import ru.surf.learn2invest.presentation.utils.NoArgException
 import ru.surf.learn2invest.presentation.utils.setNavigationBarColor
 import ru.surf.learn2invest.presentation.utils.setStatusBarColor
 
@@ -44,9 +45,9 @@ internal class AssetReviewActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         // Получение данных о символе, ID и названии актива из intent
-        val id = intent.getStringExtra(AssetConstants.ID.key) ?: ""
-        val name = intent.getStringExtra(AssetConstants.NAME.key) ?: ""
-        val symbol = intent.getStringExtra(AssetConstants.SYMBOL.key) ?: ""
+        val id = intent.getStringExtra(ID_KEY) ?: throw NoArgException(ID_KEY)
+        val name = intent.getStringExtra(NAME_KEY) ?: throw NoArgException(NAME_KEY)
+        val symbol = intent.getStringExtra(SYMBOL_KEY) ?: throw NoArgException(SYMBOL_KEY)
 
         // Обработчик кнопки возврата
         binding.goBack.setOnClickListener {
@@ -134,5 +135,17 @@ internal class AssetReviewActivity : AppCompatActivity() {
             replace(R.id.fragment_container, fragment)
             commit()
         }
+    }
+
+    companion object {
+        private const val ID_KEY = "ID_KEY"
+        private const val NAME_KEY = "NAME_KEY"
+        private const val SYMBOL_KEY = "SYMBOL_KEY"
+        fun newIntent(activity: AppCompatActivity, id: String, name: String, symbol: String) =
+            Intent(activity, AssetReviewActivity::class.java).apply {
+                putExtra(ID_KEY, id)
+                putExtra(NAME_KEY, name)
+                putExtra(SYMBOL_KEY, symbol)
+            }
     }
 }

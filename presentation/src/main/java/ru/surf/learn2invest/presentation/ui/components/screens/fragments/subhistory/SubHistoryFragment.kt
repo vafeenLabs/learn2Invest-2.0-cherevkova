@@ -12,7 +12,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import ru.surf.learn2invest.presentation.databinding.FragmentAssetHistoryBinding
-import ru.surf.learn2invest.presentation.utils.AssetConstants
+import ru.surf.learn2invest.presentation.utils.NoArgException
 import ru.surf.learn2invest.presentation.utils.viewModelCreator
 import javax.inject.Inject
 
@@ -29,7 +29,7 @@ internal class SubHistoryFragment : Fragment() {
     // Создание ViewModel с передачей символа монеты для фильтрации данных
     private val viewModel: SubHistoryFragmentViewModel by viewModelCreator {
         factory.createSubHistoryAssetViewModel(
-            symbol = requireArguments().getString(AssetConstants.SYMBOL.key) ?: ""
+            symbol = requireArguments().getString(SYMBOL_KEY) ?: throw NoArgException(SYMBOL_KEY)
         )
     }
 
@@ -71,12 +71,11 @@ internal class SubHistoryFragment : Fragment() {
      * Создание экземпляра фрагмента с передачей символа монеты.
      */
     companion object {
-        fun newInstance(symbol: String): SubHistoryFragment {
-            val fragment = SubHistoryFragment()
-            val args = Bundle()
-            args.putString(AssetConstants.SYMBOL.key, symbol)
-            fragment.arguments = args
-            return fragment
+        private const val SYMBOL_KEY = "SYMBOL_KEY"
+        fun newInstance(symbol: String): SubHistoryFragment = SubHistoryFragment().also {
+            it.arguments = Bundle().apply {
+                putString(SYMBOL_KEY, symbol)
+            }
         }
     }
 }

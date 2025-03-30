@@ -1,7 +1,5 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.sign_in
 
-import android.app.Activity
-import android.content.Intent
 import android.widget.ImageView
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,8 +13,8 @@ import ru.surf.learn2invest.domain.cryptography.PasswordHasher
 import ru.surf.learn2invest.domain.cryptography.usecase.VerifyPINUseCase
 import ru.surf.learn2invest.domain.domain_models.Profile
 import ru.surf.learn2invest.domain.services.ProfileManager
-import ru.surf.learn2invest.presentation.ui.components.screens.host.HostActivity
 import javax.inject.Inject
+
 /**
  * ViewModel для экрана входа (SignInActivity), обрабатывающий аутентификацию с использованием PIN-кода и отпечатка пальца.
  * Обрабатывает логику аутентификации, блокировку/разблокировку клавиатуры и анимацию точек в процессе ввода PIN-кода.
@@ -32,7 +30,7 @@ internal class SignInActivityViewModel @Inject constructor(
     var fingerprintAuthenticator: FingerprintAuthenticator,
     private val verifyPINUseCase: VerifyPINUseCase,
     private val animateDotsUseCase: AnimateDotsUseCase,
-     val passwordHasher: PasswordHasher,
+    val passwordHasher: PasswordHasher,
 ) : ViewModel() {
 
     /**
@@ -96,20 +94,6 @@ internal class SignInActivityViewModel @Inject constructor(
         _keyBoardIsWorkFLow.update { true }
     }
 
-    /**
-     * Обработчик успешной аутентификации, который перенаправляет пользователя на главный экран.
-     *
-     * @param action Действие, определяющее, какую активность запускать.
-     * @param context Контекст активности для выполнения перенаправления.
-     */
-    fun onAuthenticationSucceeded(
-        action: String,
-        context: Activity,
-    ) {
-        if (action != SignINActivityActions.ChangingPIN.action)
-            context.startActivity(Intent(context, HostActivity::class.java))
-        context.finish()
-    }
 
     /**
      * Обновление профиля с помощью предоставленной функции для изменения данных.

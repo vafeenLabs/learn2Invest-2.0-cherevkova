@@ -64,15 +64,15 @@ internal class ProfileFragment : Fragment() {
             }
 
             fr.changeTradingPasswordBtn.setOnClickListener {
-                viewModel.changeTradingPassword(requireContext())
+                viewModel.changeTradingPassword(activity as AppCompatActivity)
             }
 
             fr.confirmDealBtn.setOnClickListener {
-                viewModel.changeTransactionConfirmation(requireContext())
+                viewModel.changeTransactionConfirmation(activity as AppCompatActivity)
             }
 
             fr.changePINBtn.setOnClickListener {
-                viewModel.changePIN(requireContext())
+                viewModel.changePIN(activity as AppCompatActivity)
             }
 
         }

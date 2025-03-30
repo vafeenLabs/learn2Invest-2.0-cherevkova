@@ -1,13 +1,12 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.marketreview
 
 import android.content.Context
-import android.content.Intent
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.qualifiers.ActivityContext
@@ -15,7 +14,6 @@ import ru.surf.learn2invest.domain.domain_models.CoinReview
 import ru.surf.learn2invest.domain.services.coin_icon_loader.usecase.LoadCoinIconUseCase
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_review.AssetReviewActivity
-import ru.surf.learn2invest.presentation.utils.AssetConstants
 import ru.surf.learn2invest.presentation.utils.getWithCurrency
 import ru.surf.learn2invest.presentation.utils.round
 import java.text.NumberFormat
@@ -107,13 +105,14 @@ internal class MarketReviewAdapter @Inject constructor(
 
             // Обработка клика по элементу списка
             itemView.setOnClickListener {
-                context.startActivity(Intent(context, AssetReviewActivity::class.java).apply {
-                    putExtras(Bundle().apply {
-                        putString(AssetConstants.ID.key, coin.id)
-                        putString(AssetConstants.NAME.key, coin.name)
-                        putString(AssetConstants.SYMBOL.key, coin.symbol)
-                    })
-                })
+                context.startActivity(
+                    AssetReviewActivity.newIntent(
+                        context as AppCompatActivity,
+                        coin.id,
+                        coin.name,
+                        coin.symbol
+                    )
+                )
             }
         }
     }

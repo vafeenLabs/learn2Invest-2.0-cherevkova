@@ -1,14 +1,13 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.history
 
 import android.content.Context
-import android.content.Intent
 import android.content.res.Configuration
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.qualifiers.ActivityContext
@@ -18,7 +17,6 @@ import ru.surf.learn2invest.domain.services.coin_icon_loader.usecase.LoadCoinIco
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_review.AssetReviewActivity
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.common.TransactionAdapterDiffCallback
-import ru.surf.learn2invest.presentation.utils.AssetConstants
 import ru.surf.learn2invest.presentation.utils.getWithCurrency
 import javax.inject.Inject
 
@@ -77,13 +75,14 @@ internal class HistoryFragmentAdapter @Inject constructor(
             coinBottomNumericInfo.text = coin.coinPrice.getWithCurrency()
             loadCoinIconUseCase.invoke(coinIcon, coin.symbol)
             itemView.setOnClickListener {
-                context.startActivity(Intent(context, AssetReviewActivity::class.java).apply {
-                    putExtras(Bundle().apply {
-                        putString(AssetConstants.ID.key, coin.coinID)
-                        putString(AssetConstants.NAME.key, coin.name)
-                        putString(AssetConstants.SYMBOL.key, coin.symbol)
-                    })
-                })
+                context.startActivity(
+                    AssetReviewActivity.newIntent(
+                        context as AppCompatActivity,
+                        coin.coinID,
+                        coin.name,
+                        coin.symbol
+                    )
+                )
             }
         }
     }

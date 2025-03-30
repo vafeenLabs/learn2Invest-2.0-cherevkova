@@ -1,5 +1,7 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.sign_in
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -19,6 +21,7 @@ import ru.surf.learn2invest.domain.utils.tapOn
 import ru.surf.learn2invest.domain.utils.withContextIO
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.ActivitySignInBinding
+import ru.surf.learn2invest.presentation.ui.components.screens.host.HostActivity
 import ru.surf.learn2invest.presentation.utils.setNavigationBarColor
 import ru.surf.learn2invest.presentation.utils.setStatusBarColor
 
@@ -57,7 +60,7 @@ internal class SignInActivity : AppCompatActivity() {
         initListeners()
 
         when (intent.action) {
-            SignINActivityActions.SignIN.action -> {
+            SIGN_IN -> {
                 if (viewModel.profileFlow.value.biometry) {
                     viewModel.fingerprintAuthenticator.auth(
                         coroutineScope = lifecycleScope, activity = this@SignInActivity
@@ -65,14 +68,14 @@ internal class SignInActivity : AppCompatActivity() {
                 }
             }
 
-            SignINActivityActions.SignUP.action -> {
+            SIGN_UP -> {
                 binding.enterPin.text =
                     ContextCompat.getString(this@SignInActivity, R.string.create_pin)
 
                 binding.fingerprint.isVisible = false
             }
 
-            SignINActivityActions.ChangingPIN.action -> {
+            CHANGING_PIN -> {
                 binding.enterPin.text =
                     ContextCompat.getString(this@SignInActivity, R.string.enter_old_pin)
 
@@ -114,15 +117,15 @@ internal class SignInActivity : AppCompatActivity() {
                 if (pin.length == 4) {
                     viewModel.blockKeyBoard()
                     when (intent.action) {
-                        SignINActivityActions.SignIN.action -> {
+                        SIGN_IN -> {
                             signInActions()
                         }
 
-                        SignINActivityActions.SignUP.action -> {
+                        SIGN_UP -> {
                             signUpActions(pin)
                         }
 
-                        SignINActivityActions.ChangingPIN.action -> {
+                        CHANGING_PIN -> {
                             changingPINActions(pin)
                         }
                     }
@@ -132,12 +135,12 @@ internal class SignInActivity : AppCompatActivity() {
 
         viewModel.fingerprintAuthenticator.setSuccessCallback {
             lifecycleScope.launchIO {
-                if (intent.action == SignINActivityActions.SignUP.action) {
+                if (intent.action == SIGN_UP) {
                     viewModel.updateProfile {
                         it.copy(biometry = true)
                     }
                 }
-                viewModel.onAuthenticationSucceeded(
+                onAuthenticationSucceeded(
                     action = intent.action ?: "",
                     context = this@SignInActivity,
                 )
@@ -203,7 +206,8 @@ internal class SignInActivity : AppCompatActivity() {
                         needReturn = true, truePIN = viewModel.isVerified
                     ) {
                         viewModel.clearPIN()
-                        if (viewModel.isVerified) binding.enterPin.text = getString(R.string.enter_new_pin)
+                        if (viewModel.isVerified) binding.enterPin.text =
+                            getString(R.string.enter_new_pin)
                         viewModel.unblockKeyBoard()
                     }
                 }
@@ -239,7 +243,7 @@ internal class SignInActivity : AppCompatActivity() {
                         needReturn = !truth, truePIN = truth
                     ) {
                         if (truth) {
-                            viewModel.onAuthenticationSucceeded(
+                            onAuthenticationSucceeded(
                                 action = intent.action ?: "",
                                 context = this@SignInActivity,
                             )
@@ -260,7 +264,7 @@ internal class SignInActivity : AppCompatActivity() {
             needReturn = !isAuthSucceeded, truePIN = isAuthSucceeded
         ) {
             if (isAuthSucceeded) {
-                viewModel.onAuthenticationSucceeded(
+                onAuthenticationSucceeded(
                     action = intent.action ?: "",
                     context = this@SignInActivity,
                 )
@@ -302,7 +306,7 @@ internal class SignInActivity : AppCompatActivity() {
                         needReturn = false, truePIN = true
                     ) {
                         val auth = {
-                            viewModel.onAuthenticationSucceeded(
+                            onAuthenticationSucceeded(
                                 action = intent.action ?: "",
                                 context = this@SignInActivity,
                             )
@@ -343,5 +347,41 @@ internal class SignInActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Обработчик успешной аутентификации, который перенаправляет пользователя на главный экран.
+     *
+     * @param action Действие, определяющее, какую активность запускать.
+     * @param context Контекст активности для выполнения перенаправления.
+     */
+    fun onAuthenticationSucceeded(
+        action: String,
+        context: Activity,
+    ) {
+        if (action != CHANGING_PIN)
+            context.startActivity(Intent(context, HostActivity::class.java))
+        context.finish()
+    }
+
+    companion object {
+        private const val SIGN_UP = "SIGN_UP"
+        private const val SIGN_IN = "SIGN_IN"
+        private const val CHANGING_PIN = "CHANGING_PIN"
+        private fun AppCompatActivity.intentWithAction(action: String): Intent = Intent(
+            this,
+            SignInActivity::class.java
+        ).also {
+            it.action = action
+        }
+
+        fun newInstanceSignIN(activity: AppCompatActivity) =
+            activity.intentWithAction(SIGN_IN)
+
+        fun newInstanceSignUP(activity: AppCompatActivity) =
+            activity.intentWithAction(SIGN_UP)
+
+        fun newInstanceChangingPIN(activity: AppCompatActivity) =
+            activity.intentWithAction(CHANGING_PIN)
     }
 }

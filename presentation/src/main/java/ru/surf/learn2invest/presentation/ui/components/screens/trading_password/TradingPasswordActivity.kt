@@ -1,5 +1,6 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.trading_password
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -220,5 +221,24 @@ internal class TradingPasswordActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        private fun AppCompatActivity.intentWithAction(action: TradingPasswordActivityActions): Intent =
+            Intent(
+                this,
+                TradingPasswordActivity::class.java
+            ).also {
+                it.action = action.action
+            }
+
+        fun newInstanceCreateTP(activity: AppCompatActivity) =
+            activity.intentWithAction(TradingPasswordActivityActions.CreateTradingPassword)
+
+        fun newInstanceChangeTP(activity: AppCompatActivity) =
+            activity.intentWithAction(TradingPasswordActivityActions.ChangeTradingPassword)
+
+        fun newInstanceRemoveTP(activity: AppCompatActivity) =
+            activity.intentWithAction(TradingPasswordActivityActions.RemoveTradingPassword)
     }
 }

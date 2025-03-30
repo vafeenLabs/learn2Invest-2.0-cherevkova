@@ -1,6 +1,5 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.sign_up
 
-import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
@@ -12,25 +11,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import ru.surf.learn2invest.domain.services.ProfileManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.ActivitySignUpBinding
-import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignINActivityActions
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignInActivity
 import ru.surf.learn2invest.presentation.utils.setNavigationBarColor
 import ru.surf.learn2invest.presentation.utils.setStatusBarColor
 import ru.surf.learn2invest.presentation.utils.textListener
+
 /**
  * Activity для регистрации нового пользователя. Обрабатывает ввод имени и фамилии пользователя,
  * их валидацию и обновление данных профиля. После успешной регистрации, пользователь будет
@@ -253,9 +246,7 @@ internal class SignUpActivity : AppCompatActivity() {
                     lastName = viewModel.lastNameFlow.value
                 )
             }
-            startActivity(Intent(this@SignUpActivity, SignInActivity::class.java).apply {
-                action = SignINActivityActions.SignUP.action
-            })
+            startActivity(SignInActivity.newInstanceSignUP(this@SignUpActivity))
             this@SignUpActivity.finish()
         }
     }
@@ -271,6 +262,7 @@ internal class SignUpActivity : AppCompatActivity() {
     /**
      * Показ клавиатуры для текущего элемента.
      */
-    private fun View.showKeyboard() = WindowCompat.getInsetsController(window,this).show(WindowInsetsCompat.Type.ime())
+    private fun View.showKeyboard() =
+        WindowCompat.getInsetsController(window, this).show(WindowInsetsCompat.Type.ime())
 }
 

@@ -1,13 +1,12 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.portfolio
 
 import android.content.Context
-import android.content.Intent
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.qualifiers.ActivityContext
@@ -16,7 +15,6 @@ import ru.surf.learn2invest.domain.services.coin_icon_loader.usecase.LoadCoinIco
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_review.AssetReviewActivity
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.common.MapDiffCallback
-import ru.surf.learn2invest.presentation.utils.AssetConstants
 import ru.surf.learn2invest.presentation.utils.getWithCurrency
 import ru.surf.learn2invest.presentation.utils.getWithPCS
 import ru.surf.learn2invest.presentation.utils.round
@@ -83,13 +81,14 @@ internal class PortfolioAdapter @Inject constructor(
         holder.bind(asset, priceChanges[asset.symbol] ?: 0f) // Привязываем данные к элементу
         holder.itemView.setOnClickListener {
             // При клике на элемент открываем экран с подробностями актива
-            context.startActivity(Intent(context, AssetReviewActivity::class.java).apply {
-                putExtras(Bundle().apply {
-                    putString(AssetConstants.ID.key, asset.assetID) // ID актива
-                    putString(AssetConstants.NAME.key, asset.name) // Название актива
-                    putString(AssetConstants.SYMBOL.key, asset.symbol) // Символ актива
-                })
-            })
+            context.startActivity(
+                AssetReviewActivity.newIntent(
+                    context as AppCompatActivity,
+                    asset.assetID,
+                    asset.name,
+                    asset.symbol
+                )
+            )
         }
     }
 

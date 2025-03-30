@@ -10,7 +10,6 @@ import kotlinx.coroutines.delay
 import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.ActivityMainBinding
-import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignINActivityActions
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignInActivity
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_up.SignUpActivity
 import ru.surf.learn2invest.presentation.utils.setNavigationBarColor
@@ -43,9 +42,7 @@ internal class MainActivity : AppCompatActivity() {
                 it.firstName != "undefined" && it.lastName != "undefined" && it.hash != null
             }) {
             runAnimatedText {
-                startActivity(Intent(this@MainActivity, SignInActivity::class.java).also {
-                    it.action = SignINActivityActions.SignIN.action
-                })
+                startActivity(SignInActivity.newInstanceSignIN(this@MainActivity))
                 this@MainActivity.finish()
             }
         } else {
@@ -61,7 +58,8 @@ internal class MainActivity : AppCompatActivity() {
      */
     private fun runAnimatedText(onEnd: () -> Unit) {
         binding.splashTextView.alpha = 0f
-        binding.splashTextView.text = "${getString(R.string.hello)}, ${viewModel.profileFlow.value.firstName}!"
+        binding.splashTextView.text =
+            "${getString(R.string.hello)}, ${viewModel.profileFlow.value.firstName}!"
         viewModel.animateAlpha(
             view = binding.splashTextView,
             duration = 2000,

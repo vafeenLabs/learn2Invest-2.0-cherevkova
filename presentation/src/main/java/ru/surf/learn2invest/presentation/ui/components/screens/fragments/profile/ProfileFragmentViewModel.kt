@@ -1,7 +1,6 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.profile
 
 import android.content.Context
-import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,10 +11,8 @@ import ru.surf.learn2invest.domain.domain_models.Profile
 import ru.surf.learn2invest.domain.services.ProfileManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.presentation.R
-import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignINActivityActions
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignInActivity
 import ru.surf.learn2invest.presentation.ui.components.screens.trading_password.TradingPasswordActivity
-import ru.surf.learn2invest.presentation.ui.components.screens.trading_password.TradingPasswordActivityActions
 import javax.inject.Inject
 
 /**
@@ -47,40 +44,26 @@ internal class ProfileFragmentViewModel @Inject constructor(
         profileManager.updateProfile(updating)
     }
 
-    /**
-     * Запускает активность для изменения пароля для торговли.
-     *
-     * @param context Контекст, необходимый для запуска активности.
-     * @param tradingPasswordActivityActions Действие для активности изменения пароля.
-     */
-    private fun startIntentWithAction(
-        context: Context,
-        tradingPasswordActivityActions: TradingPasswordActivityActions,
-    ) = context.startActivity(
-        Intent(
-            context,
-            TradingPasswordActivity::class.java
-        ).also { it.action = tradingPasswordActivityActions.action })
-
 
     /**
      * Изменяет настройку подтверждения транзакции, в зависимости от наличия пароля для торговли.
      *
-     * @param context Контекст для запуска активности.
+     * @param activity Контекст для запуска активности.
      */
-    fun changeTransactionConfirmation(context: Context) = startIntentWithAction(
-        context, if (profileFlow.value.tradingPasswordHash == null)
-            TradingPasswordActivityActions.CreateTradingPassword
-        else TradingPasswordActivityActions.RemoveTradingPassword
+    fun changeTransactionConfirmation(activity: AppCompatActivity) = activity.startActivity(
+        if (profileFlow.value.tradingPasswordHash == null) TradingPasswordActivity.newInstanceCreateTP(
+            activity
+        ) else TradingPasswordActivity.newInstanceRemoveTP(activity)
     )
 
     /**
      * Запускает активность для изменения пароля для торговли.
      *
-     * @param context Контекст для запуска активности.
+     * @param activity Контекст для запуска активности.
      */
-    fun changeTradingPassword(context: Context) =
-        startIntentWithAction(context, TradingPasswordActivityActions.ChangeTradingPassword)
+    fun changeTradingPassword(activity: AppCompatActivity) = activity.startActivity(
+        TradingPasswordActivity.newInstanceChangeTP(activity)
+    )
 
     /**
      * Переключает настройку биометрической аутентификации для пользователя.
@@ -113,9 +96,7 @@ internal class ProfileFragmentViewModel @Inject constructor(
      * @param context Контекст для запуска активности.
      */
     fun changePIN(context: Context) {
-        context.startActivity(Intent(context, SignInActivity::class.java).also {
-            it.action = SignINActivityActions.ChangingPIN.action
-        })
+        context.startActivity(SignInActivity.newInstanceChangingPIN(context as AppCompatActivity))
     }
 
     /**

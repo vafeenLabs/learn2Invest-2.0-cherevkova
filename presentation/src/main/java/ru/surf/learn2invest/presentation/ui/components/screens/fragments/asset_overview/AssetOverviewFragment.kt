@@ -15,7 +15,6 @@ import ru.surf.learn2invest.presentation.databinding.FragmentAssetOverviewBindin
 import ru.surf.learn2invest.presentation.ui.components.chart.Last7DaysFormatter
 import ru.surf.learn2invest.presentation.ui.components.chart.LineChartHelper
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.common.BaseResFragment
-import ru.surf.learn2invest.presentation.utils.AssetConstants
 import ru.surf.learn2invest.presentation.utils.NoArgException
 import ru.surf.learn2invest.presentation.utils.formatAsPrice
 import ru.surf.learn2invest.presentation.utils.getWithCurrency
@@ -37,13 +36,8 @@ internal class AssetOverviewFragment : BaseResFragment() {
 
     private val viewModel: AssetOverViewFragmentViewModel by viewModelCreator {
         factory.createAssetOverViewFragmentViewModel(
-            id = (requireArguments().getString(AssetConstants.ID.key) ?: throw NoArgException(
-                AssetConstants.ID.key
-            )),
-            symbol = (requireArguments().getString(AssetConstants.SYMBOL.key)
-                ?: throw NoArgException(
-                    AssetConstants.SYMBOL.key
-                )),
+            id = requireArguments().getString(ID_KEY) ?: throw NoArgException(ID_KEY),
+            symbol = requireArguments().getString(SYMBOL_KEY) ?: throw NoArgException(SYMBOL_KEY)
         )
     }
 
@@ -116,6 +110,9 @@ internal class AssetOverviewFragment : BaseResFragment() {
     }
 
     companion object {
+        private const val ID_KEY = "ID_KEY"
+        private const val SYMBOL_KEY = "SYMBOL_KEY"
+
         /**
          * Создание нового экземпляра фрагмента с параметрами для ID и символа актива.
          *
@@ -123,14 +120,12 @@ internal class AssetOverviewFragment : BaseResFragment() {
          * @param symbol Символ актива
          * @return Новый экземпляр [AssetOverviewFragment]
          */
-        fun newInstance(id: String, symbol: String): AssetOverviewFragment {
-            Log.d("state", "id=$id symbol=$symbol")
-            val fragment = AssetOverviewFragment()
-            val args = Bundle()
-            args.putString(AssetConstants.ID.key, id)
-            args.putString(AssetConstants.SYMBOL.key, symbol)
-            fragment.arguments = args
-            return fragment
-        }
+        fun newInstance(id: String, symbol: String): AssetOverviewFragment =
+            AssetOverviewFragment().also {
+                it.arguments = Bundle().apply {
+                    putString(ID_KEY, id)
+                    putString(SYMBOL_KEY, symbol)
+                }
+            }
     }
 }
