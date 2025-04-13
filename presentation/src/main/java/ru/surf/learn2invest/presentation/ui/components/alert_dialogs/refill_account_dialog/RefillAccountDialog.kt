@@ -28,14 +28,13 @@ import ru.surf.learn2invest.presentation.utils.getWithCurrency
 @AndroidEntryPoint
 internal class RefillAccountDialog : CustomBottomSheetDialog() {
 
-    private lateinit var binding: DialogRefillAccountBinding
     override val dialogTag: String = "refillAccount"
     private val viewModel: RefillAccountDialogViewModel by viewModels()
 
     /**
      * Инициализация слушателей для обработки пользовательских действий в диалоговом окне.
      */
-    private fun initListeners() {
+    private fun initListeners(binding: DialogRefillAccountBinding) {
         binding.apply {
             lifecycleScope.launchMAIN {
                 viewModel.profileFlow.collect { profile ->
@@ -77,14 +76,14 @@ internal class RefillAccountDialog : CustomBottomSheetDialog() {
                 }
             }
 
-            setupNumberPad()
+            setupNumberPad(binding)
         }
     }
 
     /**
      * Настраивает обработку нажатий на цифровую клавиатуру.
      */
-    private fun setupNumberPad() {
+    private fun setupNumberPad(binding: DialogRefillAccountBinding) {
         val numberButtons = listOf(
             binding.button0,
             binding.button1,
@@ -156,8 +155,8 @@ internal class RefillAccountDialog : CustomBottomSheetDialog() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        binding = DialogRefillAccountBinding.inflate(inflater)
-        initListeners()
+        val binding = DialogRefillAccountBinding.inflate(inflater)
+        initListeners(binding)
         return binding.root
     }
 

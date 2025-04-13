@@ -39,7 +39,6 @@ internal class SellDialog : CustomBottomSheetDialog() {
      * Тег диалога для идентификации.
      */
     override val dialogTag: String = "sell"
-    private lateinit var binding: DialogSellBinding
 
     /**
      * Фабрика для создания ViewModel.
@@ -66,14 +65,14 @@ internal class SellDialog : CustomBottomSheetDialog() {
      * - обработчик изменения текста для ввода количества лотов и торгового пароля.
      * - обновление UI в зависимости от состояния продажи.
      */
-    private fun initListeners() {
+    private fun initListeners(binding: DialogSellBinding) {
         binding.apply {
 
             // Деактивация кнопки продажи по умолчанию
             buttonSell.isVisible = false
             buttonSell.setOnClickListener {
                 lifecycleScope.launchIO {
-                    sell()
+                    sell(binding)
                     dismiss()
                 }
             }
@@ -177,7 +176,7 @@ internal class SellDialog : CustomBottomSheetDialog() {
      * Эта функция извлекает цену и количество лотов, указанных пользователем, и передает их в ViewModel для
      * обработки продажи актива.
      */
-    private suspend fun sell() {
+    private suspend fun sell(binding: DialogSellBinding) {
         val price = binding.priceNumber.text.toString().getFloatFromStringWithCurrency() ?: 0f
         val amountCurrent = binding.enteringNumberOfLots.text.toString().toInt()
         viewModel.sell(price, amountCurrent)
@@ -188,8 +187,8 @@ internal class SellDialog : CustomBottomSheetDialog() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        binding = DialogSellBinding.inflate(inflater)
-        initListeners()
+        val binding = DialogSellBinding.inflate(layoutInflater)
+        initListeners(binding)
         return binding.root
     }
 

@@ -34,7 +34,6 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 internal class BuyDialog : CustomBottomSheetDialog() {
-    private lateinit var binding: DialogBuyBinding
     override val dialogTag: String = "buy"
 
     @Inject
@@ -80,15 +79,15 @@ internal class BuyDialog : CustomBottomSheetDialog() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        binding = DialogBuyBinding.inflate(inflater)
-        initListeners()
+        val binding = DialogBuyBinding.inflate(layoutInflater)
+        initListeners(binding)
         return binding.root
     }
 
     /**
      * Инициализация обработчиков событий для элементов интерфейса.
      */
-    private fun initListeners() {
+    private fun initListeners(binding: DialogBuyBinding) {
         binding.apply {
 
 
@@ -96,7 +95,7 @@ internal class BuyDialog : CustomBottomSheetDialog() {
 
             buttonBuy.setOnClickListener {
                 lifecycleScope.launchIO {
-                    buy()
+                    buy(binding)
                     dismiss()
                 }
             }
@@ -190,7 +189,7 @@ internal class BuyDialog : CustomBottomSheetDialog() {
     /**
      * Выполняет покупку актива.
      */
-    private suspend fun buy() {
+    private suspend fun buy(binding: DialogBuyBinding) {
         val price = binding.priceNumber.text.toString().getFloatFromStringWithCurrency()
         val amountCurrent = binding.enteringNumberOfLots.text.toString().toInt()
         if (price != null) viewModel.buy(price, amountCurrent)

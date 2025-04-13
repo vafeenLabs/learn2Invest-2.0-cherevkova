@@ -29,8 +29,6 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 internal class AssetOverviewFragment : BaseResFragment() {
-    private lateinit var binding: FragmentAssetOverviewBinding
-
     @Inject
     lateinit var factory: AssetOverViewFragmentViewModel.Factory
 
@@ -46,7 +44,7 @@ internal class AssetOverviewFragment : BaseResFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        binding = FragmentAssetOverviewBinding.inflate(inflater, container, false)
+        val binding = FragmentAssetOverviewBinding.inflate(inflater, container, false)
 
         // Настройка и загрузка данных для графика
         viewModel.chartHelper = LineChartHelper(requireContext(), Last7DaysFormatter())

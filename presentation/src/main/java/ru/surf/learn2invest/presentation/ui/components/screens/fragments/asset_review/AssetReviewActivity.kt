@@ -24,7 +24,7 @@ import ru.surf.learn2invest.presentation.utils.setStatusBarColor
  */
 @AndroidEntryPoint
 internal class AssetReviewActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityAssetReviewBinding
+
     private val viewModel: AssetReviewActivityViewModel by viewModels()
     private var isOverviewSelected = true
 
@@ -41,7 +41,7 @@ internal class AssetReviewActivity : AppCompatActivity() {
         setNavigationBarColor(window, this, R.color.white, R.color.main_background_dark)
 
         // Инициализация привязки и привязка UI
-        binding = ActivityAssetReviewBinding.inflate(layoutInflater)
+        val binding = ActivityAssetReviewBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         // Получение данных о символе, ID и названии актива из intent
@@ -58,13 +58,13 @@ internal class AssetReviewActivity : AppCompatActivity() {
         goToFragment(AssetOverviewFragment.newInstance(id, symbol))
 
         // Обновление цвета кнопок в зависимости от текущего состояния
-        updateButtonColors()
+        updateButtonColors(binding)
 
         // Обработчик клика на кнопку "Обзор"
         binding.assetReviewBtn.setOnClickListener {
             if (!isOverviewSelected) {
                 isOverviewSelected = true
-                updateButtonColors()
+                updateButtonColors(binding)
                 goToFragment(AssetOverviewFragment.newInstance(id, symbol))
             }
         }
@@ -73,7 +73,7 @@ internal class AssetReviewActivity : AppCompatActivity() {
         binding.assetHistoryBtn.setOnClickListener {
             if (isOverviewSelected) {
                 isOverviewSelected = false
-                updateButtonColors()
+                updateButtonColors(binding)
                 goToFragment(SubHistoryFragment.newInstance(symbol))
             }
         }
@@ -99,7 +99,7 @@ internal class AssetReviewActivity : AppCompatActivity() {
     /**
      * Обновление цветов кнопок в зависимости от текущего состояния отображаемого фрагмента.
      */
-    private fun updateButtonColors() {
+    private fun updateButtonColors(binding: ActivityAssetReviewBinding) {
         // Определение текущей темы (темная или светлая)
         val isDarkTheme =
             resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES

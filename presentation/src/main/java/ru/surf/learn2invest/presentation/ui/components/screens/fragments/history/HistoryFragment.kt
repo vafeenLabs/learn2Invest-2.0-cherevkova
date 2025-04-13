@@ -23,7 +23,6 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 internal class HistoryFragment : BaseResFragment() {
-    private lateinit var binding: FragmentHistoryBinding
     private val viewModel: HistoryFragmentViewModel by viewModels()
 
     @Inject
@@ -43,14 +42,9 @@ internal class HistoryFragment : BaseResFragment() {
             )
         }
 
-        binding = FragmentHistoryBinding.inflate(inflater, container, false)
+        val binding = FragmentHistoryBinding.inflate(inflater, container, false)
         binding.historyRecyclerview.layoutManager = LinearLayoutManager(requireContext())
         binding.historyRecyclerview.adapter = adapter
-        return binding.root
-    }
-
-    override fun onStart() {
-        super.onStart()
         lifecycleScope.launchIO {
             viewModel.data.collect {
                 withContextMAIN {
@@ -63,5 +57,7 @@ internal class HistoryFragment : BaseResFragment() {
                 }
             }
         }
+        return binding.root
     }
+
 }
