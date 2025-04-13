@@ -5,12 +5,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import ru.surf.learn2invest.domain.TransactionsType
 import ru.surf.learn2invest.domain.cryptography.usecase.IsTrueTradingPasswordOrIsNotDefinedUseCase
 import ru.surf.learn2invest.domain.database.usecase.DeleteAssetInvestUseCase
@@ -62,11 +64,6 @@ internal class SellDialogViewModel @AssistedInject constructor(
     private var realTimeUpdateJob: Job? = null
 
     /**
-     * Поток, содержащий информацию о профиле пользователя.
-     */
-    val profileFlow = profileManager.profileFlow
-
-    /**
      * Поток, содержащий данные о лотах для продажи.
      */
     private val _lotsFlow = MutableStateFlow(LotsData(0))
@@ -89,9 +86,14 @@ internal class SellDialogViewModel @AssistedInject constructor(
      * Состояние диалога продажи, которое объединяет информацию о лотах, торговом пароле и активе.
      */
     val stateFlow =
-        combine(_lotsFlow.asStateFlow(), _tradingPasswordFlow.asStateFlow(), _coinFlow) { lotsData, tradingPassword, asset ->
-            SellDialogState(asset, lotsData, tradingPassword)
-        }
+        combine(
+            _lotsFlow.asStateFlow(),
+            _tradingPasswordFlow.asStateFlow(),
+            _coinFlow,
+            profileManager.profileFlow,
+        ) { lotsData, tradingPassword, asset, profile ->
+            SellDialogState(asset, lotsData, tradingPassword, profile.fiatBalance, profile)
+        }.flowOn(Dispatchers.IO)
 
     /**
      * Увеличивает количество лотов на 1.
@@ -176,7 +178,7 @@ internal class SellDialogViewModel @AssistedInject constructor(
                         _coinFlow.emit(_coinFlow.value.copy(coinPrice = result.value.priceUsd))
                     }
 
-                    is ResponseResult.NetworkError -> {}
+                    is ResponseResult.Error -> {}
                 }
                 delay(5000)
             }

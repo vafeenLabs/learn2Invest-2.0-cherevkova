@@ -6,11 +6,12 @@ import com.github.mikephil.charting.data.Entry
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import ru.surf.learn2invest.domain.database.usecase.GetBySymbolAssetInvestUseCase
 import ru.surf.learn2invest.domain.domain_models.AugmentedCoinReview
 import ru.surf.learn2invest.domain.network.ResponseResult
@@ -38,23 +39,28 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
     private var realTimeUpdateJob: Job? = null
     private val _formattedMarketCapFlow = MutableStateFlow(0f)
     private val _formattedPriceFlow = MutableStateFlow(0f)
-    val formattedMarketCapFlow = _formattedMarketCapFlow.asStateFlow()
-    val formattedPriceFlow = _formattedPriceFlow.asStateFlow()
+
 
     /**
      * Поток, собирающий данные для отображения информации о монете
      */
     val coinInfoFlow =
-        combine(formattedPriceFlow, getBySymbolAssetInvestUseCase.invoke(symbol)) { price, asset ->
+        combine(
+            _formattedMarketCapFlow,
+            _formattedPriceFlow,
+            getBySymbolAssetInvestUseCase.invoke(symbol)
+        ) { cap, price, asset ->
             if (asset != null) {
                 CoinInfoState.Data(
                     finResult = FinResult(asset, price),
                     coinPriceChangesResult = priceChangesStr(asset, price),
                     coinCostResult = (price * asset.amount).formatAsPrice(2).getWithCurrency(),
                     coinCount = "${asset.amount}",
+                    price = price,
+                    marketCap = cap
                 )
             } else CoinInfoState.EmptyResult
-        }
+        }.flowOn(Dispatchers.IO)
 
     /**
      * Обновление данных для графика и отображение рыночной капитализации и цены.

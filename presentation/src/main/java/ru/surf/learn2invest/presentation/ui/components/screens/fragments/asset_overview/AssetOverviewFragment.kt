@@ -53,22 +53,6 @@ internal class AssetOverviewFragment : BaseResFragment() {
         viewModel.chartHelper.setupChart(binding.chart)
         viewModel.loadChartData()
 
-        // Сбор данных о рыночной капитализации и форматирование их для отображения
-        lifecycleScope.launchMAIN {
-            viewModel.formattedMarketCapFlow.collect {
-                binding.capitalisation.text = NumberFormat.getInstance(Locale.US).apply {
-                    maximumFractionDigits = 0
-                }.format(it).getWithCurrency()
-            }
-        }
-
-        // Сбор данных о цене и форматирование их для отображения
-        lifecycleScope.launchMAIN {
-            viewModel.formattedPriceFlow.collect {
-                binding.price.text = it.formatAsPrice(8).getWithCurrency()
-            }
-        }
-
         // Сбор и отображение информации о монете
         lifecycleScope.launchMAIN {
             viewModel.coinInfoFlow.collect { state ->
@@ -82,6 +66,10 @@ internal class AssetOverviewFragment : BaseResFragment() {
                         coinsPrice.text = state.coinPriceChangesResult
                         coinsCount.text = state.coinCount
                     }
+                    binding.capitalisation.text = NumberFormat.getInstance(Locale.US).apply {
+                        maximumFractionDigits = 0
+                    }.format(state.marketCap).getWithCurrency()
+                    binding.price.text = state.price.formatAsPrice(8).getWithCurrency()
                 }
             }
         }

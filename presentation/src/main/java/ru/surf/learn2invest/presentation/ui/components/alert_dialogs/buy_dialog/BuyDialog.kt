@@ -90,11 +90,7 @@ internal class BuyDialog : CustomBottomSheetDialog() {
      */
     private fun initListeners() {
         binding.apply {
-            lifecycleScope.launchMAIN {
-                viewModel.profileFlow.collect {
-                    balanceNum.text = it.fiatBalance.getWithCurrency()
-                }
-            }
+
 
             buttonBuy.isVisible = false
 
@@ -131,14 +127,7 @@ internal class BuyDialog : CustomBottomSheetDialog() {
                 })
             )
 
-            lifecycleScope.launchMAIN {
-                viewModel.profileFlow.collect {
-                    enteringNumberOfLots.isEnabled = it.fiatBalance != 0f
-                }
-            }
 
-            tradingPassword.isVisible = viewModel.profileFlow.value.tradingPasswordHash != null &&
-                    viewModel.profileFlow.value.fiatBalance != 0f
 
             if (tradingPassword.isVisible) {
                 tradingPasswordTV.addTextChangedListener(
@@ -155,10 +144,10 @@ internal class BuyDialog : CustomBottomSheetDialog() {
                     val lotsData = state.lotsData
                     val coin = state.coin
                     val willPrice = lotsData.lots * coin.coinPrice
-                    val fiatBalance = viewModel.profileFlow.value.fiatBalance
+                    val fiatBalance = state.balance
                     when {
                         viewModel.isTrueTradingPasswordOrIsNotDefinedUseCase.invoke(
-                            viewModel.profileFlow.value, state.tradingPassword
+                            state.profile, state.tradingPassword
                         ) && lotsData.lots > 0f && fiatBalance != 0f && willPrice <= fiatBalance -> {
                             buttonBuy.isVisible = true
                             result.text =
@@ -176,11 +165,15 @@ internal class BuyDialog : CustomBottomSheetDialog() {
                             result.text = ""
                         }
                     }
-                    val maxQuantity = maxQuantity(coin.coinPrice, state.balance)
+                    val maxQuantity = maxQuantity(coin.coinPrice, fiatBalance)
                     maxQuantityNumber.text = "$maxQuantity"
                     imageButtonPlus.isVisible = lotsData.lots < maxQuantity
                     imageButtonMinus.isVisible = lotsData.lots > 0
                     priceNumber.text = state.coin.coinPrice.getWithCurrency()
+                    balanceNum.text = fiatBalance.getWithCurrency()
+                    enteringNumberOfLots.isEnabled = fiatBalance != 0f
+                    tradingPassword.isVisible = state.profile.tradingPasswordHash != null &&
+                            fiatBalance != 0f
                 }
             }
         }

@@ -11,11 +11,12 @@ class GetMarketReviewUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(): ResponseResult<List<CoinReview>> =
         repository.getMarketReview().also {
-            if (it is ResponseResult.Success)
-                Log.d(
+            when (it) {
+                is ResponseResult.Error -> Log.e("data", "market review error ${it.e.stackTraceToString()}")
+                is ResponseResult.Success -> Log.d(
                     "data",
                     "market review data size${it.value.size}"
                 )
-            else Log.e("data", "market review error")
+            }
         }
 }

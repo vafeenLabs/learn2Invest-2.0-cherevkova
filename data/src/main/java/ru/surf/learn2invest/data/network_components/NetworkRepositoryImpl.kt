@@ -32,7 +32,7 @@ internal class NetworkRepositoryImpl @Inject constructor(
                 )
             )
         } catch (e: Exception) {
-            ResponseResult.NetworkError
+            ResponseResult.Error(e)
         }
 
     override suspend fun getCoinHistory(id: String): ResponseResult<List<CoinPrice>> =
@@ -48,14 +48,14 @@ internal class NetworkRepositoryImpl @Inject constructor(
                 )
             )
         } catch (e: Exception) {
-            ResponseResult.NetworkError
+            ResponseResult.Error(e)
         }
 
     override suspend fun getMarketReview(): ResponseResult<List<CoinReview>> =
         try {
             ResponseResult.Success(coinReviewConverter.convertList(coinAPIService.getMarketReview().data))
         } catch (e: Exception) {
-            ResponseResult.NetworkError
+            ResponseResult.Error(e)
         }
 }
 

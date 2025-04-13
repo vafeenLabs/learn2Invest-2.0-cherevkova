@@ -68,12 +68,6 @@ internal class SellDialog : CustomBottomSheetDialog() {
      */
     private fun initListeners() {
         binding.apply {
-            lifecycleScope.launchMAIN {
-                // Подписка на изменения профиля и обновление баланса
-                viewModel.profileFlow.collect {
-                    balanceNum.text = it.fiatBalance.getWithCurrency()
-                }
-            }
 
             // Деактивация кнопки продажи по умолчанию
             buttonSell.isVisible = false
@@ -133,7 +127,8 @@ internal class SellDialog : CustomBottomSheetDialog() {
                 viewModel.stateFlow.collect { state ->
                     val lotsData = state.lotsData
                     tradingPassword.isVisible =
-                        viewModel.profileFlow.value.tradingPasswordHash != null && state.coin.amount > 0
+                        state.profile.tradingPasswordHash != null && state.coin.amount > 0
+                    balanceNum.text = state.balance.getWithCurrency()
                     val resultPrice = state.coin.coinPrice * state.lotsData.lots
                     when {
                         state.coin.amount == 0 -> {
@@ -144,7 +139,7 @@ internal class SellDialog : CustomBottomSheetDialog() {
                         state.coin.amount > 0f && lotsData.lots in 1..state.coin.amount -> {
                             buttonSell.isVisible =
                                 viewModel.isTrueTradingPasswordOrIsNotDefinedUseCase.invoke(
-                                    profile = viewModel.profileFlow.value,
+                                    profile = state.profile,
                                     password = tradingPasswordTV.text.toString()
                                 )
                             result.text =

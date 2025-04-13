@@ -33,7 +33,7 @@ internal class MarketReviewFragment : BaseResFragment() {
     private val binding by lazy { FragmentMarketReviewBinding.inflate(layoutInflater) }
     private val viewModel: MarketReviewFragmentViewModel by viewModels()
 
-    private lateinit var realTimeUpdateJob: Job
+    private var realTimeUpdateJob: Job? = null
 
     @Inject
     lateinit var adapter: MarketReviewAdapter
@@ -55,137 +55,103 @@ internal class MarketReviewFragment : BaseResFragment() {
 
         // Слушаем изменения фильтрации
         lifecycleScope.launchMAIN {
-            viewModel.filterOrder.collect {
+            viewModel.state.collect { state ->
                 binding.apply {
-                    if (it) {
+                    if (state.filterOrder) {
                         filterByPrice.setIconResource(R.drawable.arrow_top_green)
                         filterByPrice.setIconTintResource(R.color.label)
                     } else {
                         filterByPrice.setIconResource(R.drawable.arrow_bottom_red)
                         filterByPrice.setIconTintResource(R.color.recession)
                     }
-                }
-            }
-        }
+                    marketReviewRecyclerview.isVisible = !state.isLoading
+                    binding.progressBar.isVisible = state.isLoading
+                    marketReviewRecyclerview.isVisible = !state.isError
+                    networkErrorTv.isVisible = state.isError
+                    networkErrorIv.isVisible = state.isError
 
-        // Слушаем состояние загрузки данных
-        lifecycleScope.launchMAIN {
-            viewModel.isLoading.collect {
-                binding.apply {
-                    marketReviewRecyclerview.isVisible = it.not()
-                    binding.progressBar.isVisible = it
-                }
-            }
-        }
-
-        // Слушаем ошибки при загрузке данных
-        lifecycleScope.launchMAIN {
-            viewModel.isError.collect {
-                binding.apply {
-                    marketReviewRecyclerview.isVisible = it.not()
-                    networkErrorTv.isVisible = it
-                    networkErrorIv.isVisible = it
-                }
-            }
-        }
-
-        // Обновление данных, отображаемых в адаптере
-        lifecycleScope.launchMAIN {
-            viewModel.searchedData.collect {
-                adapter.data = it
-            }
-        }
-
-        // Обработка новых данных для поиска
-        lifecycleScope.launchMAIN {
-            viewModel.data.collect {
-                if (it.isNotEmpty()) {
-                    adapter.data = it
-                    binding.searchEditText.setAdapter(
-                        ArrayAdapter(this@MarketReviewFragment.requireContext(),
-                            android.R.layout.simple_expandable_list_item_1,
-                            it.map { element -> element.name })
-                    )
-                }
-            }
-        }
-
-        // Настройка фильтров с учетом темы (темная/светлая)
-        lifecycleScope.launchMAIN {
-            viewModel.filterState.collect {
-                binding.apply {
-                    val isDarkTheme =
-                        resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-
-                    filterByMarketcap.backgroundTintList =
-                        ColorStateList.valueOf(
-                            getColorRes(
-                                if (it[FILTER_BY_MARKETCAP] == true) {
-                                    if (isDarkTheme)
-                                        R.color.accent_background_dark
-                                    else
-                                        R.color.accent_background
-                                } else {
-                                    if (isDarkTheme)
-                                        R.color.accent_button_dark
-                                    else
-                                        R.color.view_background
-                                }
-                            )
+                    if (state.isSearch) {
+                        adapter.data = state.searchedData
+                    } else {
+                        adapter.data = state.data
+                        binding.searchEditText.setAdapter(
+                            ArrayAdapter(
+                                this@MarketReviewFragment.requireContext(),
+                                android.R.layout.simple_expandable_list_item_1,
+                                state.data.map { element -> element.name })
                         )
-                    filterByChangePercent24Hr.backgroundTintList =
-                        ColorStateList.valueOf(
-                            getColorRes(
-                                if (it[FILTER_BY_PERCENT] == true) {
-                                    if (isDarkTheme)
-                                        R.color.accent_background_dark
-                                    else
-                                        R.color.accent_background
-                                } else {
-                                    if (isDarkTheme)
-                                        R.color.accent_button_dark
-                                    else
-                                        R.color.view_background
-                                }
+                    }
+
+                    state.filterState.also {
+                        val isDarkTheme =
+                            resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+
+                        filterByMarketcap.backgroundTintList =
+                            ColorStateList.valueOf(
+                                getColorRes(
+                                    if (it == FilterState.FILTER_BY_MARKETCAP) {
+                                        if (isDarkTheme)
+                                            R.color.accent_background_dark
+                                        else
+                                            R.color.accent_background
+                                    } else {
+                                        if (isDarkTheme)
+                                            R.color.accent_button_dark
+                                        else
+                                            R.color.view_background
+                                    }
+                                )
                             )
-                        )
-                    filterByPrice.backgroundTintList =
-                        ColorStateList.valueOf(
-                            getColorRes(
-                                if (it[FILTER_BY_PRICE] == true) {
-                                    if (isDarkTheme)
-                                        R.color.accent_background_dark
-                                    else
-                                        R.color.accent_background
-                                } else {
-                                    if (isDarkTheme)
-                                        R.color.accent_button_dark
-                                    else
-                                        R.color.view_background
-                                }
+                        filterByChangePercent24Hr.backgroundTintList =
+                            ColorStateList.valueOf(
+                                getColorRes(
+                                    if (it == FilterState.FILTER_BY_PERCENT) {
+                                        if (isDarkTheme)
+                                            R.color.accent_background_dark
+                                        else
+                                            R.color.accent_background
+                                    } else {
+                                        if (isDarkTheme)
+                                            R.color.accent_button_dark
+                                        else
+                                            R.color.view_background
+                                    }
+                                )
                             )
-                        )
+                        filterByPrice.backgroundTintList =
+                            ColorStateList.valueOf(
+                                getColorRes(
+                                    if (it == FilterState.FILTER_BY_PRICE) {
+                                        if (isDarkTheme)
+                                            R.color.accent_background_dark
+                                        else
+                                            R.color.accent_background
+                                    } else {
+                                        if (isDarkTheme)
+                                            R.color.accent_button_dark
+                                        else
+                                            R.color.view_background
+                                    }
+                                )
+                            )
+                    }
+
+                    state.isSearch.also {
+                        youSearch.isVisible = it
+                        clearTv.isVisible = it
+                        cancelTV.isVisible = it
+                        filterByPrice.isVisible = it.not()
+                        filterByMarketcap.isVisible = it.not()
+                        filterByChangePercent24Hr.isVisible = it.not()
+                        searchEditText.text.clear()
+                        if (it) searchEditText.hint = ""
+                        if (it) adapter.data = state.searchedData
+                        else adapter.data = state.data
+                    }
                 }
             }
         }
 
-        // Обработка состояния поиска
-        lifecycleScope.launchMAIN {
-            viewModel.isSearch.collect {
-                binding.apply {
-                    youSearch.isVisible = it
-                    clearTv.isVisible = it
-                    cancelTV.isVisible = it
-                    filterByPrice.isVisible = it.not()
-                    filterByMarketcap.isVisible = it.not()
-                    filterByChangePercent24Hr.isVisible = it.not()
-                    searchEditText.text.clear()
-                    if (it) searchEditText.hint = ""
-                    if (it) adapter.data = viewModel.searchedData.value
-                    else adapter.data = viewModel.data.value
-                }
-            }
-        }
 
         // Настройка обработчиков нажатий на кнопки фильтрации
         binding.apply {
@@ -238,7 +204,7 @@ internal class MarketReviewFragment : BaseResFragment() {
     // Остановка обновлений данных при приостановке фрагмента
     override fun onPause() {
         super.onPause()
-        realTimeUpdateJob.cancel()
+        realTimeUpdateJob?.cancel()
     }
 
     // Функция для обновления данных каждую 5 секунд
@@ -262,8 +228,6 @@ internal class MarketReviewFragment : BaseResFragment() {
 
     // Константы для фильтров
     companion object {
-        const val FILTER_BY_MARKETCAP = 0
-        const val FILTER_BY_PERCENT = 1
-        const val FILTER_BY_PRICE = 2
+
     }
 }

@@ -36,6 +36,8 @@ internal sealed class CoinInfoState {
         val coinCostResult: String = "", // Общая стоимость активов с учетом текущей цены
         val coinPriceChangesResult: String = "", // Изменения цены актива
         val coinCount: String = "", // Количество актива
+        val price: Float,
+        val marketCap: Float,
     ) : CoinInfoState()
 
     data object EmptyResult : CoinInfoState()

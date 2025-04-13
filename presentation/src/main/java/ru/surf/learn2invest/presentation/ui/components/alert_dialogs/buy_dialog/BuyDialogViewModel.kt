@@ -5,12 +5,13 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import ru.surf.learn2invest.domain.TransactionsType
 import ru.surf.learn2invest.domain.cryptography.usecase.IsTrueTradingPasswordOrIsNotDefinedUseCase
@@ -54,17 +55,10 @@ internal class BuyDialogViewModel @AssistedInject constructor(
      */
     private var realTimeUpdateJob: Job? = null
 
-
-    /**
-     * Поток профиля пользователя
-     */
-    val profileFlow = profileManager.profileFlow
-
     /**
      * Поток данных о количестве лотов
      */
     private val _lotsFlow = MutableStateFlow(LotsData(0))
-    private val lotsFlow = _lotsFlow.asStateFlow()
 
     /**
      * Поток ввода торгового пароля
@@ -82,13 +76,13 @@ internal class BuyDialogViewModel @AssistedInject constructor(
      * Комбинированный StateFlow, содержащий актуальное состояние покупки
      */
     val stateFlow = combine(
-        lotsFlow,
+        _lotsFlow,
         _tradingPasswordFlow,
         _coinFlow,
-        profileFlow
+        profileManager.profileFlow,
     ) { lotsData, tradingPassword, asset, profile ->
-        BuyDialogState(asset, lotsData, tradingPassword, profile.fiatBalance)
-    }
+        BuyDialogState(asset, lotsData, tradingPassword, profile.fiatBalance, profile)
+    }.flowOn(Dispatchers.IO)
 
     /**
      * Запускает обновление цены актива в реальном времени с интервалом 5 секунд
@@ -101,7 +95,7 @@ internal class BuyDialogViewModel @AssistedInject constructor(
                         _coinFlow.emit(_coinFlow.value.copy(coinPrice = result.value.priceUsd))
                     }
 
-                    is ResponseResult.NetworkError -> {}
+                    is ResponseResult.Error -> {}
                 }
                 delay(5000)
             }
@@ -163,7 +157,7 @@ internal class BuyDialogViewModel @AssistedInject constructor(
      */
     suspend fun buy(price: Float, amountCurrent: Int) {
         val coin = _coinFlow.value
-        val balance = profileFlow.value.fiatBalance
+        val balance = profileManager.profileFlow.value.fiatBalance
         if (balance != 0f && balance > price * amountCurrent) {
             // Обновление баланса
             profileManager.updateProfile {
