@@ -9,9 +9,10 @@ import ru.surf.learn2invest.presentation.utils.formatAsPrice
  */
 internal data class FinResult(val resultCost: Float, val resultPercent: Float) {
     constructor(assetInvest: AssetInvest, actualPrice: Float) : this(
+        ((actualPrice - assetInvest.coinPrice) * assetInvest.amount),
         ((actualPrice * assetInvest.amount) / (assetInvest.coinPrice * assetInvest.amount)).times(
             100
-        ).minus(100), ((actualPrice - assetInvest.coinPrice) * assetInvest.amount)
+        ).minus(100),
     )
 
     /**
@@ -30,15 +31,11 @@ internal data class FinResult(val resultCost: Float, val resultPercent: Float) {
 /**
  * Состояние информации о монете. Может быть данными или пустым результатом.
  */
-internal sealed class CoinInfoState {
-    data class Data(
-        val finResult: FinResult, // Финансовый результат
-        val coinCostResult: String = "", // Общая стоимость активов с учетом текущей цены
-        val coinPriceChangesResult: String = "", // Изменения цены актива
-        val coinCount: String = "", // Количество актива
-        val price: Float,
-        val marketCap: Float,
-    ) : CoinInfoState()
-
-    data object EmptyResult : CoinInfoState()
-}
+internal data class AssetOverviewState(
+    val finResult: FinResult? = null, // Финансовый результат
+    val coinCostResult: String? = null, // Общая стоимость активов с учетом текущей цены
+    val coinPriceChangesResult: String? = null, // Изменения цены актива
+    val price: Float? = null,
+    val marketCap: Float? = null,
+    val coin: AssetInvest? = null,
+)

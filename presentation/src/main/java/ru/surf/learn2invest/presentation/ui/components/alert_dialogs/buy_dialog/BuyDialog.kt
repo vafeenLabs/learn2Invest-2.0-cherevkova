@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,7 +20,6 @@ import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.DialogBuyBinding
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.parent.CustomBottomSheetDialog
 import ru.surf.learn2invest.presentation.utils.NoArgException
-import ru.surf.learn2invest.presentation.utils.getFloatFromStringWithCurrency
 import ru.surf.learn2invest.presentation.utils.getWithCurrency
 import ru.surf.learn2invest.presentation.utils.textListener
 import ru.surf.learn2invest.presentation.utils.viewModelCreator
@@ -95,7 +95,8 @@ internal class BuyDialog : CustomBottomSheetDialog() {
 
             buttonBuy.setOnClickListener {
                 lifecycleScope.launchIO {
-                    buy(binding)
+                    Log.d("hello", "start buy")
+                    viewModel.buy()
                     dismiss()
                 }
             }
@@ -141,34 +142,43 @@ internal class BuyDialog : CustomBottomSheetDialog() {
             lifecycleScope.launchMAIN {
                 viewModel.stateFlow.collect { state ->
                     val lotsData = state.lotsData
-                    val coin = state.coin
-                    val willPrice = lotsData.lots * coin.coinPrice
-                    val fiatBalance = state.balance
-                    when {
-                        viewModel.isTrueTradingPasswordOrIsNotDefinedUseCase.invoke(
-                            state.profile, state.tradingPassword
-                        ) && lotsData.lots > 0f && fiatBalance != 0f && willPrice <= fiatBalance -> {
-                            buttonBuy.isVisible = true
-                            result.text =
-                                "${requireContext().getString(R.string.itog)} ${willPrice.getWithCurrency()}"
-                        }
+                    val currentPrice = state.currentPrice
 
-                        willPrice > fiatBalance || fiatBalance == 0f -> {
-                            buttonBuy.isVisible = false
-                            result.text =
-                                requireContext().getString(R.string.not_enough_money_for_buy)
-                        }
-
-                        else -> {
-                            buttonBuy.isVisible = false
-                            result.text = ""
-                        }
+                    val fiatBalance = state.profile.fiatBalance
+                    if (lotsData.isUpdateTVNeeded) {
+                        enteringNumberOfLots.setText("${lotsData.lots}")
                     }
-                    val maxQuantity = maxQuantity(coin.coinPrice, fiatBalance)
+                    if (currentPrice != null) {
+                        val willPrice = currentPrice * lotsData.lots
+                        when {
+                            viewModel.isTrueTradingPasswordOrIsNotDefinedUseCase.invoke(
+                                state.profile, state.tradingPassword
+                            ) && lotsData.lots > 0f && fiatBalance != 0f && willPrice <= fiatBalance -> {
+                                buttonBuy.isVisible = true
+                                result.text =
+                                    "${requireContext().getString(R.string.itog)} ${willPrice.getWithCurrency()}"
+                            }
+
+                            willPrice > fiatBalance || fiatBalance == 0f -> {
+                                buttonBuy.isVisible = false
+                                result.text =
+                                    requireContext().getString(R.string.not_enough_money_for_buy)
+                            }
+
+                            else -> {
+                                buttonBuy.isVisible = false
+                                result.text = ""
+                            }
+                        }
+
+
+                    }
+
+                    val maxQuantity = currentPrice?.let { maxQuantity(it, fiatBalance) }
                     maxQuantityNumber.text = "$maxQuantity"
-                    imageButtonPlus.isVisible = lotsData.lots < maxQuantity
+                    imageButtonPlus.isVisible = maxQuantity?.let { (lotsData.lots < it) } ?: false
                     imageButtonMinus.isVisible = lotsData.lots > 0
-                    priceNumber.text = state.coin.coinPrice.getWithCurrency()
+                    priceNumber.text = state.currentPrice?.getWithCurrency()
                     balanceNum.text = fiatBalance.getWithCurrency()
                     enteringNumberOfLots.isEnabled = fiatBalance != 0f
                     tradingPassword.isVisible = state.profile.tradingPasswordHash != null &&
@@ -186,14 +196,6 @@ internal class BuyDialog : CustomBottomSheetDialog() {
         viewModel.stopUpdatingPriceFlow()
     }
 
-    /**
-     * Выполняет покупку актива.
-     */
-    private suspend fun buy(binding: DialogBuyBinding) {
-        val price = binding.priceNumber.text.toString().getFloatFromStringWithCurrency()
-        val amountCurrent = binding.enteringNumberOfLots.text.toString().toInt()
-        if (price != null) viewModel.buy(price, amountCurrent)
-    }
 
     /**
      * Рассчитывает максимальное количество лотов, доступных для покупки.

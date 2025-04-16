@@ -97,51 +97,11 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="10dp"
-        app:layout_constraintBottom_toTopOf="@id/sell_buy_btns"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/asset_review_btn"
         app:layout_constraintVertical_chainStyle="spread" />
 
-    <LinearLayout
-        android:id="@+id/sell_buy_btns"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="27dp"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:weightSum="4"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/fragment_container">
-
-        <Button
-            android:id="@+id/buy_asset_btn"
-            style="@style/Text.SemiBold.16"
-            android:layout_width="wrap_content"
-            android:layout_height="55dp"
-            android:layout_weight="1"
-            android:backgroundTint="?attr/colorControlActivated"
-            android:text="@string/buy"
-            android:textAllCaps="true"
-            android:textColor="?attr/colorOnBackground"
-            app:cornerRadius="5dp" />
-
-        <View
-            android:id="@+id/divider"
-            android:layout_width="10dp"
-            android:layout_height="match_parent" />
-
-        <Button
-            android:id="@+id/sell_asset_btn"
-            style="@style/Text.SemiBold.16"
-            android:layout_width="wrap_content"
-            android:layout_height="55dp"
-            android:layout_weight="1"
-            android:backgroundTint="?attr/colorControlActivated"
-            android:text="@string/sell"
-            android:textAllCaps="true"
-            android:textColor="?attr/colorOnBackground"
-            app:cornerRadius="5dp" />
-    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

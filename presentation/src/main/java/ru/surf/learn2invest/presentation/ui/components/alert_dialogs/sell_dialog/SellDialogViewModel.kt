@@ -5,14 +5,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.TransactionsType
 import ru.surf.learn2invest.domain.cryptography.usecase.IsTrueTradingPasswordOrIsNotDefinedUseCase
 import ru.surf.learn2invest.domain.database.usecase.DeleteAssetInvestUseCase
@@ -25,6 +23,7 @@ import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinReviewUseCase
 import ru.surf.learn2invest.domain.services.ProfileManager
 import ru.surf.learn2invest.domain.utils.launchIO
+import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.BuySellDialogState
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.LotsData
 
 
@@ -57,75 +56,60 @@ internal class SellDialogViewModel @AssistedInject constructor(
     @Assisted("name") val name: String,
     @Assisted("symbol") val symbol: String,
 ) : ViewModel() {
+    private val profile = profileManager.profileFlow
 
     /**
      * Задержка для обновления реальной цены актива.
      */
     private var realTimeUpdateJob: Job? = null
 
-    /**
-     * Поток, содержащий данные о лотах для продажи.
-     */
-    private val _lotsFlow = MutableStateFlow(LotsData(0))
-
-    /**
-     * Поток, содержащий данные о торговом пароле.
-     */
-    private val _tradingPasswordFlow = MutableStateFlow("")
-
-    /**
-     * Поток, содержащий информацию об активах для продажи.
-     */
-    private val _coinFlow = MutableStateFlow(
-        AssetInvest(
-            name = name, symbol = symbol, coinPrice = 0f, amount = 0, assetID = id
-        )
-    )
 
     /**
      * Состояние диалога продажи, которое объединяет информацию о лотах, торговом пароле и активе.
      */
-    val stateFlow =
-        combine(
-            _lotsFlow.asStateFlow(),
-            _tradingPasswordFlow.asStateFlow(),
-            _coinFlow,
-            profileManager.profileFlow,
-        ) { lotsData, tradingPassword, asset, profile ->
-            SellDialogState(asset, lotsData, tradingPassword, profile.fiatBalance, profile)
-        }.flowOn(Dispatchers.IO)
+    private val _state = MutableStateFlow(
+        BuySellDialogState(
+            coin = AssetInvest(
+                name = name, symbol = symbol, coinPrice = 0f, amount = 0, assetID = id
+            ), profile = profile.value
+        )
+    )
+    val stateFlow = _state.asStateFlow()
 
     /**
-     * Увеличивает количество лотов на 1.
+     * Увеличивает количество лотов на 1
      */
-    suspend fun plusLot() {
-        _lotsFlow.emit(LotsData(lots = _lotsFlow.value.lots + 1))
+    fun plusLot() {
+        _state.update {
+            it.copy(lotsData = LotsData(it.lotsData.lots + 1))
+        }
     }
 
     /**
-     * Уменьшает количество лотов на 1, если количество лотов больше 0.
+     * Уменьшает количество лотов на 1, если их больше 0
      */
-    suspend fun minusLot() {
-        if (_lotsFlow.value.lots > 0)
-            _lotsFlow.emit(LotsData(lots = _lotsFlow.value.lots - 1))
+    fun minusLot() {
+        if (_state.value.lotsData.lots > 0) _state.update {
+            it.copy(lotsData = LotsData(it.lotsData.lots - 1))
+        }
     }
 
     /**
-     * Устанавливает количество лотов для продажи.
-     *
-     * @param lotsNumber Новое количество лотов.
+     * Устанавливает конкретное количество лотов
+     * @param lotsNumber Количество лотов
      */
-    suspend fun setLot(lotsNumber: Int) {
-        _lotsFlow.emit(LotsData(lots = lotsNumber, isUpdateTVNeeded = false))
+    fun setLot(lotsNumber: Int) {
+        _state.update {
+            it.copy(lotsData = LotsData(lots = lotsNumber, isUpdateTVNeeded = false))
+        }
     }
 
     /**
-     * Устанавливает значение торгового пароля.
-     *
-     * @param password Торговый пароль.
+     * Устанавливает торговый пароль
+     * @param password Введенный пользователем торговый пароль
      */
-    suspend fun setTradingPassword(password: String) {
-        _tradingPasswordFlow.emit(password)
+    fun setTradingPassword(password: String) {
+        _state.update { it.copy(tradingPassword = password) }
     }
 
     /**
@@ -135,8 +119,8 @@ internal class SellDialogViewModel @AssistedInject constructor(
      * @param amountCurrent Количество актива для продажи.
      */
     suspend fun sell(price: Float, amountCurrent: Int) {
-        val coin = _coinFlow.value
-
+        val state = _state.value
+        val coin = state.coin
         profileManager.updateProfile {
             it.copy(fiatBalance = it.fiatBalance + price * amountCurrent)
         }
@@ -173,9 +157,11 @@ internal class SellDialogViewModel @AssistedInject constructor(
     fun startUpdatingPriceFLow() {
         realTimeUpdateJob = viewModelScope.launchIO {
             while (true) {
-                when (val result = getCoinReviewUseCase.invoke(_coinFlow.value.assetID)) {
+                when (val result = getCoinReviewUseCase.invoke(_state.value.coin.assetID)) {
                     is ResponseResult.Success -> {
-                        _coinFlow.emit(_coinFlow.value.copy(coinPrice = result.value.priceUsd))
+                        _state.update {
+                            it.copy(currentPrice = result.value.priceUsd)
+                        }
                     }
 
                     is ResponseResult.Error -> {}
@@ -197,8 +183,10 @@ internal class SellDialogViewModel @AssistedInject constructor(
      * Устанавливает актив, если он найден в базе данных.
      */
     suspend fun setAssetIfInDB() {
-        getBySymbolAssetInvestUseCase.invoke(symbol = symbol).first()?.let {
-            _coinFlow.value = it
+        getBySymbolAssetInvestUseCase.invoke(symbol = symbol).first()?.let {assetInvest ->
+            _state.update {
+                it.copy(coin = assetInvest)
+            }
         }
     }
 

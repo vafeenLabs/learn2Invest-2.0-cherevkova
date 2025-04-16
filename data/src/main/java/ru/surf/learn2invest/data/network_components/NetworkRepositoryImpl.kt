@@ -25,19 +25,15 @@ internal class NetworkRepositoryImpl @Inject constructor(
     private val coinReviewConverter: CoinReviewConverter,
 ) : NetworkRepository {
     private val safeGsonConverter = SafeGsonConverter()
-    fun log(message: Any) {
-        Log.d(this@NetworkRepositoryImpl::class.qualifiedName, "$message")
-    }
+
 
     override suspend fun getCoinReview(id: String): ResponseResult<AugmentedCoinReview> =
         try {
             val response = coinAPIService.getCoinReview(
                 id = id.lowercase()
             )
-            log("getCoinReview = $response")
             ResponseResult.Success(augmentedCoinReviewConverter.convert(response.data))
         } catch (e: Exception) {
-            log("getCoinReview = ${e.stackTraceToString()}")
             ResponseResult.Error(e)
         }
 
@@ -49,10 +45,8 @@ internal class NetworkRepositoryImpl @Inject constructor(
                 start = System.currentTimeMillis() - RetrofitLinks.WEEK,
                 end = System.currentTimeMillis()
             )
-            log("getCoinHistory = $response")
             ResponseResult.Success(coinPriceConverter.convertList(response.data))
         } catch (e: Exception) {
-            log("getCoinHistory =${e.stackTraceToString()}")
             ResponseResult.Error(e)
         }
 
@@ -61,7 +55,6 @@ internal class NetworkRepositoryImpl @Inject constructor(
             val response = coinAPIService.getMarketReview()
             ResponseResult.Success(coinReviewConverter.convertList(response.data))
         } catch (e: Exception) {
-            log("getMarketReview = ${e.stackTraceToString()}")
             ResponseResult.Error(e)
         }
 }

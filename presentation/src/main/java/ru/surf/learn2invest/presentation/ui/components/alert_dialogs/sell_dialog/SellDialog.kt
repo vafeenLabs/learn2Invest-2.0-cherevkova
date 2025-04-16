@@ -127,8 +127,8 @@ internal class SellDialog : CustomBottomSheetDialog() {
                     val lotsData = state.lotsData
                     tradingPassword.isVisible =
                         state.profile.tradingPasswordHash != null && state.coin.amount > 0
-                    balanceNum.text = state.balance.getWithCurrency()
-                    val resultPrice = state.coin.coinPrice * state.lotsData.lots
+                    balanceNum.text = state.profile.fiatBalance.getWithCurrency()
+                    val resultPrice = state.currentPrice?.let { it * state.lotsData.lots }
                     when {
                         state.coin.amount == 0 -> {
                             buttonSell.isVisible = false
@@ -141,8 +141,10 @@ internal class SellDialog : CustomBottomSheetDialog() {
                                     profile = state.profile,
                                     password = tradingPasswordTV.text.toString()
                                 )
-                            result.text =
-                                "${requireContext().getString(R.string.itog)} ${resultPrice.getWithCurrency()}"
+                            resultPrice?.let {
+                                result.text =
+                                    "${requireContext().getString(R.string.itog)} ${it.getWithCurrency()}"
+                            }
                         }
 
                         else -> {
@@ -153,7 +155,7 @@ internal class SellDialog : CustomBottomSheetDialog() {
                     imageButtonPlus.isVisible = lotsData.lots < state.coin.amount
                     imageButtonMinus.isVisible = lotsData.lots > 0
 
-                    binding.priceNumber.text = state.coin.coinPrice.getWithCurrency()
+                    binding.priceNumber.text = state.currentPrice?.getWithCurrency()
                     binding.haveQuantityNumber.text = "${state.coin.amount}"
 
                     if (lotsData.isUpdateTVNeeded) binding.enteringNumberOfLots.setText("${lotsData.lots}")

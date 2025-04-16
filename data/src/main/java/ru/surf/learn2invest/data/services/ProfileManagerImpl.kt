@@ -1,5 +1,6 @@
 package ru.surf.learn2invest.data.services
 
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -26,10 +27,8 @@ internal class ProfileManagerImpl @Inject constructor(private val profileReposit
     )
     private val _profileFlow = MutableStateFlow(defaultProfile)
     override suspend fun initProfile() {
-        profileRepository.getAllAsFlow().first().let { profList ->
-            _profileFlow.value =
-                if (profList.isNotEmpty()) profList[idOfProfile] else defaultProfile
-        }
+        _profileFlow.value =
+            profileRepository.getAllAsFlow().first().getOrNull(idOfProfile) ?: defaultProfile
     }
 
     override suspend fun initProfileFlow() {
@@ -42,9 +41,9 @@ internal class ProfileManagerImpl @Inject constructor(private val profileReposit
     override val profileFlow = _profileFlow.asStateFlow()
 
     override suspend fun updateProfile(updating: (Profile) -> Profile) {
-        _profileFlow.value = updating(_profileFlow.value)
         mutex.withLock {
-            profileRepository.insert(_profileFlow.value)
+            profileRepository.insert(updating(_profileFlow.value))
+            initProfile()
         }
     }
 }

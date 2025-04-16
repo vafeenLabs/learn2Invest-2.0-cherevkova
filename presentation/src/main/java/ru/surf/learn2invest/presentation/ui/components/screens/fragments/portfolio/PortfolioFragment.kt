@@ -27,6 +27,7 @@ import ru.surf.learn2invest.presentation.utils.getWithCurrency
 import ru.surf.learn2invest.presentation.utils.setStatusBarColor
 import java.util.Locale
 import javax.inject.Inject
+import androidx.core.net.toUri
 
 /**
  * Фрагмент портфеля в [HostActivity][ru.surf.learn2invest.ui.components.screens.host.HostActivity]
@@ -147,8 +148,8 @@ internal class PortfolioFragment : BaseResFragment() {
     }
 
     // Метод для старта обновления цен при возобновлении видимости фрагмента
-    override fun onResume() {
-        super.onResume()
+    override fun onStart() {
+        super.onStart()
         viewModel.startUpdatingPriceFLow()
     }
 
@@ -195,7 +196,7 @@ internal class PortfolioFragment : BaseResFragment() {
             // Кнопка "Написать нам"
             contactUs.setOnClickListener {
                 startActivity(Intent(Intent.ACTION_SENDTO).apply {
-                    data = Uri.parse("mailto: ${DevStrLink.CHERY}")
+                    data = "mailto: ${DevStrLink.CHERY}".toUri()
                 })
             }
 
@@ -216,6 +217,6 @@ internal class PortfolioFragment : BaseResFragment() {
 
     // Открытие внешней ссылки
     private fun openLink(link: String) {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+        startActivity(Intent(Intent.ACTION_VIEW, link.toUri()))
     }
 }

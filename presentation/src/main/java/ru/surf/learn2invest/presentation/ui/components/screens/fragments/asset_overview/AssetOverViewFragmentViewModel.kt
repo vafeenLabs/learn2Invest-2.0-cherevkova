@@ -1,18 +1,19 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_overview
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mikephil.charting.data.Entry
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.database.usecase.GetBySymbolAssetInvestUseCase
+import ru.surf.learn2invest.domain.domain_models.AssetInvest
 import ru.surf.learn2invest.domain.domain_models.AugmentedCoinReview
 import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinHistoryUseCase
@@ -31,53 +32,81 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
     private val getCoinHistoryUseCase: GetCoinHistoryUseCase,
     private val getCoinReviewUseCase: GetCoinReviewUseCase,
     getBySymbolAssetInvestUseCase: GetBySymbolAssetInvestUseCase,
-    @Assisted("id") var id: String,
+    @Assisted("id") val id: String,
+    @Assisted("name") val name: String,
     @Assisted("symbol") val symbol: String,
 ) : ViewModel() {
     private var data = listOf<Entry>()
     lateinit var chartHelper: LineChartHelper
     private var realTimeUpdateJob: Job? = null
-    private val _formattedMarketCapFlow = MutableStateFlow(0f)
-    private val _formattedPriceFlow = MutableStateFlow(0f)
 
 
-    /**
-     * Поток, собирающий данные для отображения информации о монете
-     */
-    val coinInfoFlow =
-        combine(
-            _formattedMarketCapFlow,
-            _formattedPriceFlow,
-            getBySymbolAssetInvestUseCase.invoke(symbol)
-        ) { cap, price, asset ->
-            if (asset != null) {
-                CoinInfoState.Data(
-                    finResult = FinResult(asset, price),
-                    coinPriceChangesResult = priceChangesStr(asset, price),
-                    coinCostResult = (price * asset.amount).formatAsPrice(2).getWithCurrency(),
-                    coinCount = "${asset.amount}",
-                    price = price,
-                    marketCap = cap
-                )
-            } else CoinInfoState.EmptyResult
-        }.flowOn(Dispatchers.IO)
+    private val _state = MutableStateFlow(AssetOverviewState())
+    val state = _state.asStateFlow()
+
+    init {
+        viewModelScope.launchIO {
+            getBySymbolAssetInvestUseCase.invoke(symbol).collect { assetInvest ->
+                _state.update {
+                    Log.d("state", it.toString())
+                    it.copy(
+                        coin = assetInvest ?: AssetInvest(
+                            assetID = id,
+                            name = name,
+                            symbol = symbol,
+                            coinPrice = 0f,
+                            amount = 0
+                        )
+                    )
+                }
+                updateStateDependsOnPrice()
+            }
+        }
+    }
+
 
     /**
      * Обновление данных для графика и отображение рыночной капитализации и цены.
      */
-    private suspend fun updateChartData(coinResponse: ResponseResult.Success<AugmentedCoinReview>) {
+    private fun updateChartData(coinResponse: ResponseResult.Success<AugmentedCoinReview>) {
         data = if (data.isNotEmpty()) {
             data.subList(0, data.lastIndex)
                 .plus(Entry(data.size.toFloat(), coinResponse.value.priceUsd))
         } else {
             data.plus(Entry(0f, coinResponse.value.priceUsd))
         }
-
-        _formattedMarketCapFlow.emit(coinResponse.value.marketCapUsd)
-
-        _formattedPriceFlow.emit(coinResponse.value.priceUsd)
+        _state.update {
+            it.copy(
+                marketCap = coinResponse.value.marketCapUsd,
+                price = coinResponse.value.priceUsd
+            )
+        }
+        updateStateDependsOnPrice()
 
         chartHelper.updateData(data)
+    }
+
+    private fun updateStateDependsOnPrice() {
+        _state.update { state ->
+            Log.d("state", "in update $state")
+            val asset = state.coin
+            state.copy(
+                finResult = (if (asset != null && asset.amount != 0 && state.price != null) {
+                    FinResult(asset, state.price)
+                } else null),
+                coinPriceChangesResult = if (asset != null && state.price != null) {
+                    priceChangesStr(
+                        asset,
+                        state.price
+                    )
+                } else null,
+                coinCostResult = if (asset != null && state.price != null) {
+                    (state.price * asset.amount).formatAsPrice(2).getWithCurrency()
+                } else null,
+                price = state.price,
+            )
+        }
+
     }
 
     /**
@@ -105,7 +134,11 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
         realTimeUpdateJob = viewModelScope.launchIO {
             while (true) {
                 val result = getCoinReviewUseCase(id)
-                if (result is ResponseResult.Success) updateChartData(result)
+                if (result is ResponseResult.Success) {
+                    updateChartData(result)
+                    _state.update { it.copy(price = result.value.priceUsd) }
+                    updateStateDependsOnPrice()
+                }
                 delay(5000)
             }
         }
@@ -130,6 +163,7 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
          */
         fun createAssetOverViewFragmentViewModel(
             @Assisted("id") id: String,
+            @Assisted("name") name: String,
             @Assisted("symbol") symbol: String,
         ): AssetOverViewFragmentViewModel
     }

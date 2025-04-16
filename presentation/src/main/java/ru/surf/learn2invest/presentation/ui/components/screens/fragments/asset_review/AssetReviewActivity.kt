@@ -10,8 +10,6 @@ import androidx.fragment.app.Fragment
 import dagger.hilt.android.AndroidEntryPoint
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.ActivityAssetReviewBinding
-import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.buy_dialog.BuyDialog
-import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.sell_dialog.SellDialog
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_overview.AssetOverviewFragment
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.subhistory.SubHistoryFragment
 import ru.surf.learn2invest.presentation.utils.NoArgException
@@ -55,7 +53,13 @@ internal class AssetReviewActivity : AppCompatActivity() {
         }
 
         // По умолчанию отображается фрагмент с обзором актива
-        goToFragment(AssetOverviewFragment.newInstance(id, symbol))
+        goToFragment(
+            AssetOverviewFragment.newInstance(
+                id,
+                name,
+                symbol
+            )
+        )
 
         // Обновление цвета кнопок в зависимости от текущего состояния
         updateButtonColors(binding)
@@ -65,7 +69,13 @@ internal class AssetReviewActivity : AppCompatActivity() {
             if (!isOverviewSelected) {
                 isOverviewSelected = true
                 updateButtonColors(binding)
-                goToFragment(AssetOverviewFragment.newInstance(id, symbol))
+                goToFragment(
+                    AssetOverviewFragment.newInstance(
+                        id,
+                        name,
+                        symbol
+                    )
+                )
             }
         }
 
@@ -84,16 +94,6 @@ internal class AssetReviewActivity : AppCompatActivity() {
 
         // Загрузка и отображение иконки актива
         viewModel.loadImage(binding.coinIcon, symbol)
-
-        // Обработчик кнопки "Купить актив"
-        binding.buyAssetBtn.setOnClickListener {
-            BuyDialog.newInstance(id, name, symbol).showDialog(supportFragmentManager)
-        }
-
-        // Обработчик кнопки "Продать актив"
-        binding.sellAssetBtn.setOnClickListener {
-            SellDialog.newInstance(id, name, symbol).showDialog(supportFragmentManager)
-        }
     }
 
     /**

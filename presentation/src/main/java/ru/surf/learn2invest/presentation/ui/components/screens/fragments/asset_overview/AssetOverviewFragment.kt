@@ -9,9 +9,12 @@ import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.FragmentAssetOverviewBinding
+import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.buy_dialog.BuyDialog
+import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.sell_dialog.SellDialog
 import ru.surf.learn2invest.presentation.ui.components.chart.Last7DaysFormatter
 import ru.surf.learn2invest.presentation.ui.components.chart.LineChartHelper
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.common.BaseResFragment
@@ -35,7 +38,8 @@ internal class AssetOverviewFragment : BaseResFragment() {
     private val viewModel: AssetOverViewFragmentViewModel by viewModelCreator {
         factory.createAssetOverViewFragmentViewModel(
             id = requireArguments().getString(ID_KEY) ?: throw NoArgException(ID_KEY),
-            symbol = requireArguments().getString(SYMBOL_KEY) ?: throw NoArgException(SYMBOL_KEY)
+            symbol = requireArguments().getString(SYMBOL_KEY) ?: throw NoArgException(SYMBOL_KEY),
+            name = requireArguments().getString(NAME_KEY) ?: throw NoArgException(NAME_KEY),
         )
     }
 
@@ -53,22 +57,23 @@ internal class AssetOverviewFragment : BaseResFragment() {
 
         // Сбор и отображение информации о монете
         lifecycleScope.launchMAIN {
-            viewModel.coinInfoFlow.collect { state ->
-                Log.d("state", "$state")
-                binding.coin.root.isVisible = state is CoinInfoState.Data
-                if (state is CoinInfoState.Data) {
-                    binding.coin.apply {
-                        finResult.text = state.finResult.formattedStr()
-                        finResult.setTextColor(getColorRes(state.finResult.color()))
-                        coinsCost.text = state.coinCostResult
-                        coinsPrice.text = state.coinPriceChangesResult
-                        coinsCount.text = state.coinCount
-                    }
-                    binding.capitalisation.text = NumberFormat.getInstance(Locale.US).apply {
-                        maximumFractionDigits = 0
-                    }.format(state.marketCap).getWithCurrency()
-                    binding.price.text = state.price.formatAsPrice(8).getWithCurrency()
+            viewModel.state.collectLatest { state ->
+                binding.coin.root.isVisible =
+                    state.finResult != null && state.coinCostResult != null && state.coinPriceChangesResult != null && state.coin?.amount!= null
+                binding.sellBuyBtns.isVisible = state.price != null
+                binding.coin.apply {
+                    finResult.text = state.finResult?.formattedStr()
+                    state.finResult?.let { finResult.setTextColor(getColorRes(it.color())) }
+                    coinsCost.text = state.coinCostResult
+                    coinsPrice.text = state.coinPriceChangesResult
+                    coinsCount.text = state.coin?.amount?.let { "$it" }
                 }
+                binding.capitalisation.text = state.marketCap?.let {
+                    NumberFormat.getInstance(Locale.US).apply {
+                        maximumFractionDigits = 0
+                    }.format(it).getWithCurrency()
+                }
+                binding.price.text = state.price?.formatAsPrice(8)?.getWithCurrency()
             }
         }
 
@@ -82,11 +87,13 @@ internal class AssetOverviewFragment : BaseResFragment() {
         // Установка фона для корневого элемента
         binding.coin.root.setCardBackgroundColor(accentColor)
 
+        initListeners(binding)
+
         return binding.root
     }
 
-    override fun onResume() {
-        super.onResume()
+    override fun onStart() {
+        super.onStart()
         viewModel.startRealTimeUpdate()
     }
 
@@ -95,9 +102,24 @@ internal class AssetOverviewFragment : BaseResFragment() {
         viewModel.stopRealTimeUpdateJob()
     }
 
+    private fun initListeners(binding: FragmentAssetOverviewBinding) {
+        // Обработчик кнопки "Купить актив"
+        binding.buyAssetBtn.setOnClickListener {
+            BuyDialog.newInstance(viewModel.id, viewModel.name, viewModel.symbol)
+                .showDialog(parentFragmentManager)
+        }
+
+        // Обработчик кнопки "Продать актив"
+        binding.sellAssetBtn.setOnClickListener {
+            SellDialog.newInstance(viewModel.id, viewModel.name, viewModel.symbol)
+                .showDialog(parentFragmentManager)
+        }
+    }
+
     companion object {
         private const val ID_KEY = "ID_KEY"
         private const val SYMBOL_KEY = "SYMBOL_KEY"
+        private const val NAME_KEY = "NAME_KEY"
 
         /**
          * Создание нового экземпляра фрагмента с параметрами для ID и символа актива.
@@ -106,10 +128,11 @@ internal class AssetOverviewFragment : BaseResFragment() {
          * @param symbol Символ актива
          * @return Новый экземпляр [AssetOverviewFragment]
          */
-        fun newInstance(id: String, symbol: String): AssetOverviewFragment =
+        fun newInstance(id: String, name: String, symbol: String): AssetOverviewFragment =
             AssetOverviewFragment().also {
                 it.arguments = Bundle().apply {
                     putString(ID_KEY, id)
+                    putString(NAME_KEY, name)
                     putString(SYMBOL_KEY, symbol)
                 }
             }
