@@ -5,5 +5,15 @@ package ru.surf.learn2invest.data.network_components.responses
  */
 internal data class APIWrapper<T>(
     val data: T,
-    val timestamp: Long
-)
+    val info: Info = Info(
+        coins_num = 0,
+        time = System.currentTimeMillis() / 1000
+    )
+) {
+    data class Info(
+        val coins_num: Int,
+        val time: Long
+    )
+}
+
+

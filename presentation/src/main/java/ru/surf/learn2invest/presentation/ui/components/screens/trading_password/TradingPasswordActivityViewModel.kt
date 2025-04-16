@@ -82,7 +82,7 @@ internal class TradingPasswordActivityViewModel @Inject constructor(
         if (action != null) {
             when (action) {
                 TradingPasswordActivityActions.CreateTradingPassword -> MainActionButtonState(
-                    text = context.getString(TradingPasswordActivityActions.ChangeTradingPassword.resName),
+                    text = context.getString(TradingPasswordActivityActions.CreateTradingPassword.resName),
                     isVisible = ruleState[RuleStateKey.RULE_1] == true &&
                             ruleState[RuleStateKey.RULE_2] == true &&
                             ruleState[RuleStateKey.RULE_3] == true &&

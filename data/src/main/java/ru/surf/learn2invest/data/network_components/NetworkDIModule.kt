@@ -12,20 +12,14 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import ru.surf.learn2invest.data.services.coin_api_service.CoinAPIService
+import ru.surf.learn2invest.data.services.coin_api_service.RetrofitLinks
 import ru.surf.learn2invest.domain.network.NetworkRepository
-import ru.surf.learn2invest.domain.network.RetrofitLinks
 
 
 @Module
 @InstallIn(ActivityRetainedComponent::class)
 internal object NetworkDIModule {
-    @Provides
-    fun provideRetrofit(): Retrofit = Retrofit.Builder().baseUrl(RetrofitLinks.BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create()).client(
-            OkHttpClient.Builder()
-                .addInterceptor(HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC))
-                .build()
-        ).build()
 
     @Provides
     fun provideImageLoader(@ApplicationContext context: Context): ImageLoader =
@@ -38,7 +32,16 @@ internal object NetworkDIModule {
         networkRepositoryImpl
 
     @Provides
-    fun provideCoinAPIService(retrofit: Retrofit): CoinAPIService = retrofit.create(
-        CoinAPIService::class.java
-    )
+    fun provideCoinAPIService(): CoinAPIService = Retrofit.Builder().baseUrl(RetrofitLinks.BASE_URL)
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(
+            OkHttpClient.Builder()
+                .addInterceptor(
+                    HttpLoggingInterceptor()
+                        .setLevel(HttpLoggingInterceptor.Level.BASIC)
+                )
+                .build()
+        )
+        .build()
+        .create(CoinAPIService::class.java)
 }

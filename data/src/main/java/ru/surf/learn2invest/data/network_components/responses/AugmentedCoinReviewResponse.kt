@@ -30,5 +30,5 @@ internal data class AugmentedCoinReviewResponse(
     val priceUsd: Float,
     val changePercent24Hr: Float,
     val vwap24Hr: Float,
-    val explorer: String,
+    val explorer: String?,
 )

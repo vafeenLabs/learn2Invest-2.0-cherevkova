@@ -1,33 +1,39 @@
 [versions]
-accompanistPermissions = "0.31.1-alpha" # Accompanist Permissions
-agp = "8.8.0" # Android Gradle Plugin
+accompanistPermissions = "0.37.2" # Accompanist Permissions
+agp = "8.9.1" # Android Gradle Plugin
 biometric = "1.1.0" # AndroidX Biometric
-hiltAndroid = "2.52" # Hilt Android
-kotlin = "1.9.24" # Kotlin
-coreKtx = "1.15.0" # AndroidX Core KTX
+hiltAndroid = "2.56.1" # Hilt Android
+kotlin = "2.1.20" # Kotlin
+coreKtx = "1.16.0" # AndroidX Core KTX
 appcompat = "1.7.0" # AndroidX AppCompat
+kotlinxSerializationJson = "1.8.1"
+ktorServerCore = "3.1.2"
+ktorServerNetty = "3.1.2"
+ktorSerializationKotlinxJson = "3.1.2"
+logbackClassic = "1.5.18"
 material = "1.12.0" # Material Design
-activity = "1.10.0" # AndroidX Activity
-constraintlayout = "2.2.0" # ConstraintLayout
+activity = "1.10.1" # AndroidX Activity
+constraintlayout = "2.2.1" # ConstraintLayout
 espressoIntent = "3.6.1" # Espresso Intents
 
 # Room
 mpandroidchart = "v3.1.0" # MPAndroidChart
-roomCommon = "2.6.1" # Room Common
-roomKtx = "2.6.1" # Room KTX
+roomCommon = "2.7.0" # Room Common
+roomKtx = "2.7.0" # Room KTX
 retrofit = "2.11.0" # Retrofit
 converterGson = "2.11.0" # Retrofit Gson Converter
-gson = "2.10.1" # Gson
+gson = "2.12.1" # Gson
 loggingInterceptor = "5.0.0-alpha.14" # OkHttp Logging Interceptor
-navigationFragment = "2.8.6" # Navigation Fragment
-navigationUiKtx = "2.8.6" # Navigation UI KTX
-navigationFragmentKtx = "2.8.6" # Navigation Fragment KTX
+navigationFragment = "2.8.9" # Navigation Fragment
+navigationUiKtx = "2.8.9" # Navigation UI KTX
+navigationFragmentKtx = "2.8.9" # Navigation Fragment KTX
 lifecycleProcess = "2.8.7" # Lifecycle Process
-coilSvg = "2.6.0" # Coil SVG
-coil = "2.6.0" # Coil
+coilSvg = "2.7.0" # Coil SVG
+coil = "2.7.0" # Coil
 junit = "4.13.2" # JUnit
 junitVersion = "1.2.1" # AndroidX JUnit
-espressoCore = "3.6.1" # Espresso Core
+espressoCore = "3.6.1"
+jetbrainsKotlinJvm = "2.1.20" # Espresso Core
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" } # Accompanist Permissions
@@ -36,6 +42,14 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" } # Hilt Android
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" } # Hilt Android Compiler
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" } # AndroidX AppCompat
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+ktor-server-compression = { module = "io.ktor:ktor-server-compression", version.ref = "ktorServerCore" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktorServerCore" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorSerializationKotlinxJson" }
+ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktorServerCore" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktorServerNetty" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktorServerCore" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" } # Material Design
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" } # AndroidX Activity
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" } # ConstraintLayout
@@ -67,4 +81,5 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 # kapt for Room
 org-jetbrains-kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" } # Kotlin KAPT Plugin
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndroid" } # Hilt Android Plugin
-android-library = { id = "com.android.library", version.ref = "agp" } # Android Library Plugin
+android-library = { id = "com.android.library", version.ref = "agp" }  # Android Library Plugin
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" } # Kotlin JVM plugin

@@ -225,9 +225,4 @@ internal class MarketReviewFragment : BaseResFragment() {
         imm.hideSoftInputFromWindow(view.windowToken, 0)
         view.clearFocus()
     }
-
-    // Константы для фильтров
-    companion object {
-
-    }
 }
