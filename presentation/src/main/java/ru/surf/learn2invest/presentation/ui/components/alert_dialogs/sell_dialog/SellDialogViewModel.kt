@@ -7,7 +7,9 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -23,7 +25,6 @@ import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinReviewUseCase
 import ru.surf.learn2invest.domain.services.ProfileManager
 import ru.surf.learn2invest.domain.utils.launchIO
-import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.BuySellDialogState
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.LotsData
 
 
@@ -63,23 +64,60 @@ internal class SellDialogViewModel @AssistedInject constructor(
      */
     private var realTimeUpdateJob: Job? = null
 
+    private val _effects = MutableSharedFlow<SellDialogEffect>()
+    val effects = _effects.asSharedFlow()
 
     /**
      * Состояние диалога продажи, которое объединяет информацию о лотах, торговом пароле и активе.
      */
     private val _state = MutableStateFlow(
-        BuySellDialogState(
+        SellDialogState(
             coin = AssetInvest(
                 name = name, symbol = symbol, coinPrice = 0f, amount = 0, assetID = id
             ), profile = profile.value
         )
     )
     val stateFlow = _state.asStateFlow()
+    fun handleEvent(intent: SellDialogIntent) {
+        viewModelScope.launchIO {
+            when (intent) {
+                SellDialogIntent.MinusLot -> {
+                    minusLot()
+                }
+
+                SellDialogIntent.PlusLot -> {
+                    plusLot()
+                }
+
+                SellDialogIntent.Sell -> {
+                    sell()
+                    _effects.emit(SellDialogEffect.Dismiss)
+                }
+
+                is SellDialogIntent.SetLot -> {
+                    setLot(intent.lots)
+                }
+
+                is SellDialogIntent.SetTradingPassword -> {
+                    setTradingPassword(intent.password)
+                }
+
+                SellDialogIntent.SetupAssetIfInDbAndStartUpdatingPriceFLow -> {
+                    setAssetIfInDB()
+                    startUpdatingPriceFLow()
+                }
+
+                SellDialogIntent.StopUpdatingPriceFLow -> {
+                    stopUpdatingPriceFlow()
+                }
+            }
+        }
+    }
 
     /**
      * Увеличивает количество лотов на 1
      */
-    fun plusLot() {
+    private fun plusLot() {
         _state.update {
             it.copy(lotsData = LotsData(it.lotsData.lots + 1))
         }
@@ -88,7 +126,7 @@ internal class SellDialogViewModel @AssistedInject constructor(
     /**
      * Уменьшает количество лотов на 1, если их больше 0
      */
-    fun minusLot() {
+    private fun minusLot() {
         if (_state.value.lotsData.lots > 0) _state.update {
             it.copy(lotsData = LotsData(it.lotsData.lots - 1))
         }
@@ -98,7 +136,7 @@ internal class SellDialogViewModel @AssistedInject constructor(
      * Устанавливает конкретное количество лотов
      * @param lotsNumber Количество лотов
      */
-    fun setLot(lotsNumber: Int) {
+    private fun setLot(lotsNumber: Int) {
         _state.update {
             it.copy(lotsData = LotsData(lots = lotsNumber, isUpdateTVNeeded = false))
         }
@@ -108,19 +146,18 @@ internal class SellDialogViewModel @AssistedInject constructor(
      * Устанавливает торговый пароль
      * @param password Введенный пользователем торговый пароль
      */
-    fun setTradingPassword(password: String) {
+    private fun setTradingPassword(password: String) {
         _state.update { it.copy(tradingPassword = password) }
     }
 
     /**
      * Выполняет операцию продажи актива.
-     *
-     * @param price Цена продажи актива.
-     * @param amountCurrent Количество актива для продажи.
      */
-    suspend fun sell(price: Float, amountCurrent: Int) {
+    private suspend fun sell() {
         val state = _state.value
         val coin = state.coin
+        val amountCurrent = state.lotsData.lots
+        val price = state.currentPrice as Float
         profileManager.updateProfile {
             it.copy(fiatBalance = it.fiatBalance + price * amountCurrent)
         }
@@ -154,7 +191,7 @@ internal class SellDialogViewModel @AssistedInject constructor(
     /**
      * Запускает обновление цены актива каждые 5 секунд.
      */
-    fun startUpdatingPriceFLow() {
+    private fun startUpdatingPriceFLow() {
         realTimeUpdateJob = viewModelScope.launchIO {
             while (true) {
                 when (val result = getCoinReviewUseCase.invoke(_state.value.coin.assetID)) {
@@ -174,7 +211,7 @@ internal class SellDialogViewModel @AssistedInject constructor(
     /**
      * Останавливает обновление цены актива.
      */
-    fun stopUpdatingPriceFlow() {
+    private fun stopUpdatingPriceFlow() {
         realTimeUpdateJob?.cancel()
         realTimeUpdateJob = null
     }
@@ -182,8 +219,8 @@ internal class SellDialogViewModel @AssistedInject constructor(
     /**
      * Устанавливает актив, если он найден в базе данных.
      */
-    suspend fun setAssetIfInDB() {
-        getBySymbolAssetInvestUseCase.invoke(symbol = symbol).first()?.let {assetInvest ->
+    private suspend fun setAssetIfInDB() {
+        getBySymbolAssetInvestUseCase.invoke(symbol = symbol).first()?.let { assetInvest ->
             _state.update {
                 it.copy(coin = assetInvest)
             }

@@ -11,6 +11,10 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.qualifiers.ApplicationContext
 import ru.surf.learn2invest.presentation.R
 
 /**
@@ -23,9 +27,9 @@ import ru.surf.learn2invest.presentation.R
  * @param context Контекст для доступа к ресурсам и настройкам приложения.
  * @param dateFormatterStrategy Стратегия форматирования дат для оси X графика.
  */
-internal class LineChartHelper(
-    private val context: Context,
-    private val dateFormatterStrategy: CustomDateValueFormatter
+internal class LineChartHelper @AssistedInject constructor(
+    @ApplicationContext private val context: Context,
+    @Assisted private val dateFormatterStrategy: CustomDateValueFormatter
 ) {
     private lateinit var chart: LineChart
 
@@ -145,5 +149,10 @@ internal class LineChartHelper(
         mode = LineDataSet.Mode.CUBIC_BEZIER
         setDrawFilled(true)
         fillDrawable = ContextCompat.getDrawable(context, R.drawable.line_chart_style)
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(dateFormatterStrategy: CustomDateValueFormatter): LineChartHelper
     }
 }

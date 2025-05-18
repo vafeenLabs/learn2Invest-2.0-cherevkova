@@ -13,7 +13,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
-import ru.surf.learn2invest.domain.utils.launchIO
+import kotlinx.coroutines.flow.collectLatest
 import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.domain.utils.tapOn
 import ru.surf.learn2invest.presentation.R
@@ -36,44 +36,41 @@ internal class RefillAccountDialog : CustomBottomSheetDialog() {
      */
     private fun initListeners(binding: DialogRefillAccountBinding) {
         binding.apply {
-            lifecycleScope.launchMAIN {
-                viewModel.profileFlow.collect { profile ->
-                    balanceTextview.text = profile.fiatBalance.getWithCurrency()
+            viewLifecycleOwner.lifecycleScope.launchMAIN {
+                val template = requireContext().getString(R.string.enter_sum)
+                viewModel.state.collectLatest { state ->
+                    balanceTextview.text = state.balance.getWithCurrency()
+                    val balanceStr = state.enteredBalance
+                    TVEnteringSumOfBalance.text = balanceStr.ifEmpty { template }
+                    val isTemplate = balanceStr == template
+
+                    buttonDot.isVisible = balanceStr.isNotEmpty() && !balanceStr.contains(".")
+                    backspace.isVisible = !isTemplate
+                    buttonRefill.isVisible = balanceStr.let {
+                        it.isNotEmpty() && !it.endsWith('.') && !isTemplate && it.toFloatOrNull()
+                            ?.let { amount -> amount > 0 } == true
+                    }
+                    balanceClear.isVisible = !isTemplate
+                    button0.visibility = if (balanceStr != "0") View.VISIBLE else View.INVISIBLE
                 }
             }
 
-            lifecycleScope.launchMAIN {
-                viewModel.enteredBalanceFLow.collect { balanceStr ->
-                    val template = requireContext().getString(R.string.enter_sum)
-                    binding.apply {
-                        TVEnteringSumOfBalance.text = balanceStr.ifEmpty { template }
-                        val isTemplate = balanceStr == template
-
-                        buttonDot.isVisible = balanceStr.isNotEmpty() && !balanceStr.contains(".")
-                        backspace.isVisible = !isTemplate
-                        buttonRefill.isVisible = balanceStr.let {
-                            it.isNotEmpty() && !it.endsWith('.') && !isTemplate && it.toFloatOrNull()
-                                ?.let { amount -> amount > 0 } == true
+            viewLifecycleOwner.lifecycleScope.launchMAIN {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        RefillAccountDialogEffect.Dismiss -> {
+                            dismiss()
                         }
-                        balanceClear.isVisible = !isTemplate
-                        button0.visibility = if (balanceStr != "0") View.VISIBLE else View.INVISIBLE
                     }
                 }
             }
 
             balanceClear.setOnClickListener {
-                lifecycleScope.launchMAIN {
-                    balanceClear.isEnabled = false
-                    viewModel.clearBalance()
-                    balanceClear.isEnabled = true
-                }
+                viewModel.handeIntent(RefillAccountDialogIntent.ClearBalance)
             }
 
             buttonRefill.setOnClickListener {
-                lifecycleScope.launchIO {
-                    viewModel.refill()
-                    cancel()
-                }
+                viewModel.handeIntent(RefillAccountDialogIntent.Refill)
             }
 
             setupNumberPad(binding)
@@ -99,30 +96,18 @@ internal class RefillAccountDialog : CustomBottomSheetDialog() {
 
         numberButtons.forEachIndexed { index, button ->
             button.setOnClickListener {
-                lifecycleScope.launchMAIN {
-                    button.isEnabled = false
-                    viewModel.addCharToBalance("$index")
-                    (it as TextView).tapOn()
-                    button.isEnabled = true
-                }
+                viewModel.handeIntent(RefillAccountDialogIntent.AddCharToBalance("$index"))
+                (it as TextView).tapOn()
             }
         }
 
         binding.buttonDot.setOnClickListener {
-            lifecycleScope.launchMAIN {
-                binding.buttonDot.isEnabled = false
-                viewModel.addCharToBalance(".")
-                (it as TextView).tapOn()
-                binding.buttonDot.isEnabled = true
-            }
+            viewModel.handeIntent(RefillAccountDialogIntent.AddCharToBalance("."))
+            (it as TextView).tapOn()
         }
 
         binding.backspace.setOnClickListener {
-            lifecycleScope.launchMAIN {
-                binding.backspace.isEnabled = false
-                viewModel.removeLastCharFromBalance()
-                binding.backspace.isEnabled = true
-            }
+            viewModel.handeIntent(RefillAccountDialogIntent.RemoveLastCharFromBalance)
         }
     }
 
@@ -154,16 +139,6 @@ internal class RefillAccountDialog : CustomBottomSheetDialog() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View {
-        val binding = DialogRefillAccountBinding.inflate(inflater)
-        initListeners(binding)
-        return binding.root
-    }
+    ): View = DialogRefillAccountBinding.inflate(inflater).also { initListeners(it) }.root
 
-    /**
-     * Закрывает диалоговое окно.
-     */
-    fun cancel() {
-        dismiss()
-    }
 }

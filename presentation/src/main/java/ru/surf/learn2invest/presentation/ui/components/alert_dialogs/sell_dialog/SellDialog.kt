@@ -12,14 +12,12 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
-import ru.surf.learn2invest.domain.utils.launchIO
+import kotlinx.coroutines.flow.collectLatest
 import ru.surf.learn2invest.domain.utils.launchMAIN
-import ru.surf.learn2invest.domain.utils.withContextMAIN
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.DialogSellBinding
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.parent.CustomBottomSheetDialog
 import ru.surf.learn2invest.presentation.utils.NoArgException
-import ru.surf.learn2invest.presentation.utils.getFloatFromStringWithCurrency
 import ru.surf.learn2invest.presentation.utils.getWithCurrency
 import ru.surf.learn2invest.presentation.utils.textListener
 import ru.surf.learn2invest.presentation.utils.viewModelCreator
@@ -71,59 +69,42 @@ internal class SellDialog : CustomBottomSheetDialog() {
             // Деактивация кнопки продажи по умолчанию
             buttonSell.isVisible = false
             buttonSell.setOnClickListener {
-                lifecycleScope.launchIO {
-                    sell(binding)
-                    dismiss()
-                }
+                viewModel.handleEvent(SellDialogIntent.Sell)
             }
 
             // Обработчики для кнопок изменения количества лотов
             imageButtonPlus.setOnClickListener {
-                lifecycleScope.launchIO {
-                    withContextMAIN {
-                        imageButtonPlus.isEnabled = false
-                    }
-                    viewModel.plusLot()
-                    withContextMAIN {
-                        imageButtonPlus.isEnabled = true
-                    }
-                }
+                viewModel.handleEvent(SellDialogIntent.PlusLot)
             }
             imageButtonMinus.setOnClickListener {
-                lifecycleScope.launchIO {
-                    withContextMAIN {
-                        imageButtonMinus.isEnabled = false
-                    }
-                    viewModel.minusLot()
-                    withContextMAIN {
-                        imageButtonMinus.isEnabled = true
-                    }
-                }
+                viewModel.handleEvent(SellDialogIntent.MinusLot)
             }
 
             // Обработчик изменения текста для количества лотов
             enteringNumberOfLots.addTextChangedListener(
                 textListener(afterTextChanged = {
-                    lifecycleScope.launchMAIN {
-                        viewModel.setLot(
+                    viewModel.handleEvent(
+                        SellDialogIntent.SetLot(
                             binding.enteringNumberOfLots.text.toString().toIntOrNull() ?: 0
                         )
-                    }
+                    )
                 })
             )
 
             // Обработчик изменения текста для торгового пароля
             tradingPasswordTV.addTextChangedListener(
                 textListener(afterTextChanged = {
-                    lifecycleScope.launchIO {
-                        viewModel.setTradingPassword(binding.tradingPassword.editText?.text.toString())
-                    }
+                    viewModel.handleEvent(
+                        SellDialogIntent.SetTradingPassword(
+                            binding.tradingPassword.editText?.text.toString()
+                        )
+                    )
                 })
             )
 
             // Подписка на изменения состояния и обновление UI
-            lifecycleScope.launchMAIN {
-                viewModel.stateFlow.collect { state ->
+            viewLifecycleOwner.lifecycleScope.launchMAIN {
+                viewModel.stateFlow.collectLatest { state ->
                     val lotsData = state.lotsData
                     tradingPassword.isVisible =
                         state.profile.tradingPasswordHash != null && state.coin.amount > 0
@@ -137,10 +118,8 @@ internal class SellDialog : CustomBottomSheetDialog() {
 
                         state.coin.amount > 0f && lotsData.lots in 1..state.coin.amount -> {
                             buttonSell.isVisible =
-                                viewModel.isTrueTradingPasswordOrIsNotDefinedUseCase.invoke(
-                                    profile = state.profile,
-                                    password = tradingPasswordTV.text.toString()
-                                )
+                                viewModel.isTrueTradingPasswordOrIsNotDefinedUseCase
+                                    .invoke(password = tradingPasswordTV.text.toString())
                             resultPrice?.let {
                                 result.text =
                                     "${requireContext().getString(R.string.itog)} ${it.getWithCurrency()}"
@@ -161,28 +140,28 @@ internal class SellDialog : CustomBottomSheetDialog() {
                     if (lotsData.isUpdateTVNeeded) binding.enteringNumberOfLots.setText("${lotsData.lots}")
                 }
             }
+            viewLifecycleOwner.lifecycleScope.launchMAIN {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        SellDialogEffect.Dismiss -> {
+                            dismiss()
+                        }
+                    }
+                }
+            }
         }
     }
 
-    /**
-     * Прерывает процесс обновления потока с ценой при закрытии диалога.
-     */
-    override fun dismiss() {
-        super.dismiss()
-        viewModel.stopUpdatingPriceFlow()
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        viewModel.handleEvent(SellDialogIntent.SetupAssetIfInDbAndStartUpdatingPriceFLow)
     }
 
-    /**
-     * Выполняет продажу актива.
-     *
-     * Эта функция извлекает цену и количество лотов, указанных пользователем, и передает их в ViewModel для
-     * обработки продажи актива.
-     */
-    private suspend fun sell(binding: DialogSellBinding) {
-        val price = binding.priceNumber.text.toString().getFloatFromStringWithCurrency() ?: 0f
-        val amountCurrent = binding.enteringNumberOfLots.text.toString().toInt()
-        viewModel.sell(price, amountCurrent)
+    override fun onDetach() {
+        viewModel.handleEvent(SellDialogIntent.StopUpdatingPriceFLow)
+        super.onDetach()
     }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -211,14 +190,6 @@ internal class SellDialog : CustomBottomSheetDialog() {
         return dialog
     }
 
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        lifecycleScope.launchIO {
-            viewModel.setAssetIfInDB()
-        }.invokeOnCompletion {
-            viewModel.startUpdatingPriceFLow()
-        }
-    }
 
     companion object {
         private const val ID_KEY = "ID_KEY"

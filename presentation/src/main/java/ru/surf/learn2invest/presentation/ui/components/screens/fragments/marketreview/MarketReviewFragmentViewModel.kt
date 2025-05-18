@@ -4,17 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import ru.surf.learn2invest.domain.database.usecase.ClearSearchedCoinUseCase
 import ru.surf.learn2invest.domain.database.usecase.GetAllSearchedCoinUseCase
 import ru.surf.learn2invest.domain.database.usecase.InsertSearchedCoinUseCase
 import ru.surf.learn2invest.domain.domain_models.CoinReview
-import ru.surf.learn2invest.domain.domain_models.SearchedCoin
 import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinReviewUseCase
 import ru.surf.learn2invest.domain.network.usecase.GetMarketReviewUseCase
@@ -47,9 +43,6 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
      */
     private var firstTimePriceFilter = true
 
-    private val _state = MutableStateFlow(MarketReviewFragmentState())
-    val state = _state.asStateFlow()
-
     /**
      * Индекс первого элемента, который должен быть обновлен при загрузке новых данных.
      */
@@ -60,48 +53,106 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
      */
     private var amountUpdateElement = 0
 
-    /**
-     * Инициализация данных, выполняется при создании ViewModel.
-     * Получает рыночные обзоры и обновляет состояние данных.
-     */
-    init {
-        initData()
-    }
-
-    /**
-     * Инициализирует данные, выполняет загрузку рыночных обзоров.
-     */
-    private fun initData() {
+    private val _state = MutableStateFlow(MarketReviewFragmentState())
+    val state = _state.asStateFlow()
+    fun handleIntent(intent: MarketReviewFragmentIntent) {
         viewModelScope.launchIO {
-            when (val result = getMarkerReviewUseCase()) {
-                is ResponseResult.Success -> {
+            when (intent) {
+                MarketReviewFragmentIntent.ClearSearchData -> {
+                    clearSearchData()
+                }
+
+                MarketReviewFragmentIntent.FilterByMarketCap -> {
+                    filterByMarketcap()
+                }
+
+                MarketReviewFragmentIntent.FilterByPercent -> {
+                    filterByPercent()
+                }
+
+                MarketReviewFragmentIntent.FilterByPrice -> {
+                    filterByPrice()
+                }
+
+                is MarketReviewFragmentIntent.SetSearchState -> {
                     _state.update {
-                        it.copy(
-                            isLoading = false,
-                            isError = false,
-                            data = result.value.toMutableList().filter {
-                                it.marketCapUsd > 0f && it.priceUsd > 0.1f
-                            }.sortedByDescending { it.marketCapUsd }
-                        )
+                        val copy = it.copy(isSearch = intent.isSearch)
+                        if (!intent.isSearch) {
+                            copy.copy(searchRequest = "")
+                        } else copy
                     }
                 }
 
-                is ResponseResult.Error -> {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            isError = true,
-                        )
+                is MarketReviewFragmentIntent.UpdateData -> {
+                    updateData(intent.firstElement, intent.lastElement)
+                }
+
+                is MarketReviewFragmentIntent.UpdateSearchRequest -> {
+                    updateSearchRequest(intent.searchRequest)
+                }
+
+                is MarketReviewFragmentIntent.AddSearchedCoin -> {
+                    if (_state.value.isSearch) {
+                        insertSearchedCoinUseCase.invoke(intent.searchedCoin)
                     }
                 }
             }
         }
     }
 
+    init {
+        viewModelScope.launchIO {
+            getAllSearchedCoinUseCase.invoke().collect { data ->
+                val searchedIds = data.map { it.coinID }
+                _state.update { state ->
+                    state.copy(searchedData = state.data.filter { it.id in searchedIds })
+                }
+            }
+        }
+    }
+
+    /**
+     * Инициализирует данные, выполняет загрузку рыночных обзоров.
+     */
+    private suspend fun initData() {
+        when (val result = getMarkerReviewUseCase()) {
+            is ResponseResult.Success -> {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        isError = false,
+                        data = result.value.toMutableList().filter {
+                            it.marketCapUsd > 0f && it.priceUsd > 0.1f
+                        }.sortedByDescending { it.marketCapUsd }
+                    )
+                }
+            }
+
+            is ResponseResult.Error -> {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        isError = true,
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Инициализация данных, выполняется при создании ViewModel.
+     * Получает рыночные обзоры и обновляет состояние данных.
+     */
+    init {
+        viewModelScope.launchIO {
+            initData()
+        }
+    }
+
     /**
      * Активирует состояние фильтра для выбранного элемента.
      *
-     * @param element Идентификатор фильтра.
+     * @param filterState Идентификатор фильтра.
      */
     private fun activateFilterState(filterState: FilterState) {
         if (filterState != FilterState.FILTER_BY_PRICE) firstTimePriceFilter = true
@@ -113,7 +164,7 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
     /**
      * Сортирует данные по рыночной капитализации.
      */
-    fun filterByMarketcap() {
+    private fun filterByMarketcap() {
         activateFilterState(FilterState.FILTER_BY_MARKETCAP)
         _state.update {
             it.copy(data = it.data.sortedByDescending { element -> element.marketCapUsd })
@@ -123,7 +174,7 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
     /**
      * Сортирует данные по процентному изменению за 24 часа.
      */
-    fun filterByPercent() {
+    private fun filterByPercent() {
         activateFilterState(FilterState.FILTER_BY_PERCENT)
         _state.update {
             it.copy(data = it.data.sortedByDescending { element -> element.changePercent24Hr })
@@ -133,7 +184,7 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
     /**
      * Сортирует данные по цене.
      */
-    fun filterByPrice() {
+    private fun filterByPrice() {
         activateFilterState(FilterState.FILTER_BY_PRICE)
         if (!firstTimePriceFilter) {
             _state.update {
@@ -149,26 +200,22 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
 
     /**
      * Устанавливает состояние поиска и обновляет данные с учетом поискового запроса.
-     *
-     * @param isSearch Состояние поиска.
      * @param searchRequest Строка поискового запроса.
      */
-    fun setSearchState(isSearch: Boolean, searchRequest: String = "") {
-        var tempSearch = listOf<String>()
+    private fun updateSearchRequest(searchRequest: String = "") {
         _state.update {
-            it.copy(isSearch = isSearch)
-        }
-        if (isSearch) {
-            viewModelScope.launchIO {
-                if (searchRequest.isNotBlank()) {
-                    insertSearchedCoinUseCase(SearchedCoin(coinID = searchRequest))
-                }
-                tempSearch = getAllSearchedCoinUseCase().first().map { it.coinID }
-                _state.update {
-                    it.copy(searchedData = it.data.filter { element -> tempSearch.contains(element.name) }
-                        .reversed())
-                }
-            }
+            it.copy(
+                searchRequest = searchRequest,
+                dataBySearchRequest = if (searchRequest.isNotEmpty()) {
+                    it.data.filter { element ->
+                        searchRequest in element.name ||
+                                searchRequest in element.symbol ||
+                                searchRequest in element.id
+                    }
+                } else {
+                    listOf()
+                })
+
         }
     }
 
@@ -178,7 +225,7 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
      * @param firstElement Индекс первого элемента.
      * @param lastElement Индекс последнего элемента.
      */
-    fun updateData(firstElement: Int, lastElement: Int) {
+    private suspend fun updateData(firstElement: Int, lastElement: Int) {
         val tempUpdate = mutableListOf<CoinReview>()
         val state = state.value
         val updateDestinationLink = if (state.isSearch) state.searchedData else state.data
@@ -188,37 +235,35 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
         ) {
             firstUpdateElement = firstElement
             amountUpdateElement = lastElement - firstElement + 1
-            viewModelScope.launch(Dispatchers.IO) {
-                for (index in firstElement..lastElement) {
-                    when (val result =
-                        getCoinReviewUseCase.invoke(updateDestinationLink[index].id)) {
-                        is ResponseResult.Success -> {
-                            tempUpdate.add(result.value.toCoinReview())
-                        }
+            for (index in firstElement..lastElement) {
+                when (val result =
+                    getCoinReviewUseCase.invoke(updateDestinationLink[index].id)) {
+                    is ResponseResult.Success -> {
+                        tempUpdate.add(result.value.toCoinReview())
+                    }
 
-                        is ResponseResult.Error -> _state.update {
-                            it.copy(isError = true)
-                        }
+                    is ResponseResult.Error -> _state.update {
+                        it.copy(isError = true)
                     }
                 }
-                val tempUpdateId = tempUpdate.map { it.id }
+            }
+            val tempUpdateId = tempUpdate.map { it.id }
 
-                _state.update {
-                    if (state.isSearch) {
-                        it.copy(searchedData = it.searchedData.mapNotNull { element ->
-                            if (tempUpdateId.contains(element.id)) tempUpdate.find { updateElement ->
-                                updateElement.id == element.id
-                            }
-                            else element
-                        })
-                    } else {
-                        it.copy(data = it.data.mapNotNull { element ->
-                            if (tempUpdateId.contains(element.id)) tempUpdate.find { updateElement ->
-                                updateElement.id == element.id
-                            }
-                            else element
-                        })
-                    }
+            _state.update {
+                if (state.isSearch) {
+                    it.copy(searchedData = it.searchedData.mapNotNull { element ->
+                        if (tempUpdateId.contains(element.id)) tempUpdate.find { updateElement ->
+                            updateElement.id == element.id
+                        }
+                        else element
+                    })
+                } else {
+                    it.copy(data = it.data.mapNotNull { element ->
+                        if (tempUpdateId.contains(element.id)) tempUpdate.find { updateElement ->
+                            updateElement.id == element.id
+                        }
+                        else element
+                    })
                 }
             }
         } else initData()
@@ -227,12 +272,7 @@ internal class MarketReviewFragmentViewModel @Inject constructor(
     /**
      * Очищает данные поиска.
      */
-    fun clearSearchData() {
-        viewModelScope.launchIO {
-            clearSearchedCoinUseCase()
-            _state.update {
-                it.copy(searchedData = listOf())
-            }
-        }
+    private suspend fun clearSearchData() {
+        clearSearchedCoinUseCase()
     }
 }

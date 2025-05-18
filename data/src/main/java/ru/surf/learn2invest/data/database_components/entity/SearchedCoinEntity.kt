@@ -10,8 +10,7 @@ import androidx.room.PrimaryKey
  */
 @Entity
 internal data class SearchedCoinEntity(
-    @PrimaryKey(autoGenerate = true) var id: Int = 0,
-    val coinID: String
+    @PrimaryKey() val coinID: String
 )
 
 

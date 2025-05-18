@@ -1,7 +1,8 @@
-package ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common
+package ru.surf.learn2invest.presentation.ui.components.alert_dialogs.buy_dialog
 
 import ru.surf.learn2invest.domain.domain_models.AssetInvest
 import ru.surf.learn2invest.domain.domain_models.Profile
+import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.LotsData
 
 /**
  * Состояние диалога продажи актива.
@@ -13,7 +14,7 @@ import ru.surf.learn2invest.domain.domain_models.Profile
  * @param lotsData Данные о количестве лотов для продажи.
  * @param tradingPassword Торговый пароль для выполнения продажи.
  */
-internal data class BuySellDialogState(
+internal data class BuyDialogState(
     val coin: AssetInvest,
     val lotsData: LotsData = LotsData(0),
     val tradingPassword: String = "",

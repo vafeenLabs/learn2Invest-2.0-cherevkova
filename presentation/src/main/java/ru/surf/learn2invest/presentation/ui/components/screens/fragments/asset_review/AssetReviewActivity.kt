@@ -4,10 +4,12 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
+import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.ActivityAssetReviewBinding
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_overview.AssetOverviewFragment
@@ -15,6 +17,8 @@ import ru.surf.learn2invest.presentation.ui.components.screens.fragments.subhist
 import ru.surf.learn2invest.presentation.utils.NoArgException
 import ru.surf.learn2invest.presentation.utils.setNavigationBarColor
 import ru.surf.learn2invest.presentation.utils.setStatusBarColor
+import ru.surf.learn2invest.presentation.utils.viewModelCreator
+import javax.inject.Inject
 
 /**
  * Экран обзора актива, позволяющий пользователю просматривать подробности актива,
@@ -22,9 +26,16 @@ import ru.surf.learn2invest.presentation.utils.setStatusBarColor
  */
 @AndroidEntryPoint
 internal class AssetReviewActivity : AppCompatActivity() {
+    @Inject
+    lateinit var factory: AssetReviewActivityViewModel.Factory
 
-    private val viewModel: AssetReviewActivityViewModel by viewModels()
-    private var isOverviewSelected = true
+    private val viewModel: AssetReviewActivityViewModel by viewModelCreator {
+        factory.createAssetReviewActivityViewModel(
+            intent.getStringExtra(ID_KEY) ?: throw NoArgException(ID_KEY),
+            intent.getStringExtra(NAME_KEY) ?: throw NoArgException(NAME_KEY),
+            intent.getStringExtra(SYMBOL_KEY) ?: throw NoArgException(SYMBOL_KEY)
+        )
+    }
 
     /**
      * Инициализация экрана и привязка компонентов UI.
@@ -42,88 +53,75 @@ internal class AssetReviewActivity : AppCompatActivity() {
         val binding = ActivityAssetReviewBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Получение данных о символе, ID и названии актива из intent
-        val id = intent.getStringExtra(ID_KEY) ?: throw NoArgException(ID_KEY)
-        val name = intent.getStringExtra(NAME_KEY) ?: throw NoArgException(NAME_KEY)
-        val symbol = intent.getStringExtra(SYMBOL_KEY) ?: throw NoArgException(SYMBOL_KEY)
+        viewModel.handleIntent(AssetReviewActivityIntent.LoadIcon(binding.coinIcon))
+        initListeners(binding)
+    }
 
-        // Обработчик кнопки возврата
-        binding.goBack.setOnClickListener {
-            finish()
+
+    private fun initListeners(binding: ActivityAssetReviewBinding) {
+        lifecycleScope.launchMAIN {
+            viewModel.state.collectLatest { state ->
+                binding.coinName.text = state.name
+                binding.coinSymbol.text = state.symbol
+                // Определение текущей темы (темная или светлая)
+                val isDarkTheme =
+                    resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+
+                val accentColor =
+                    getColor(if (isDarkTheme) R.color.accent_background_dark else R.color.accent_background)
+                val defaultColor =
+                    getColor(if (isDarkTheme) R.color.accent_button_dark else R.color.view_background)
+                // Установка цвета фона для кнопок "Обзор" и "История"
+                binding.assetOverviewBtn.backgroundTintList = ColorStateList.valueOf(
+                    if (state.isOverviewSelected) accentColor else defaultColor
+                )
+
+                binding.assetHistoryBtn.backgroundTintList = ColorStateList.valueOf(
+                    if (!state.isOverviewSelected) accentColor else defaultColor
+                )
+                if (state.isOverviewSelected) {
+                    goToFragment(
+                        AssetOverviewFragment.newInstance(
+                            state.id,
+                            state.name,
+                            state.symbol
+                        )
+                    )
+                } else {
+                    goToFragment(SubHistoryFragment.newInstance(state.symbol))
+                }
+            }
+        }
+        lifecycleScope.launchMAIN {
+            viewModel.effects.collect { effect ->
+                when (effect) {
+                    AssetReviewActivityEffect.GoBack -> {
+                        finish()
+                    }
+                }
+            }
         }
 
-        // По умолчанию отображается фрагмент с обзором актива
-        goToFragment(
-            AssetOverviewFragment.newInstance(
-                id,
-                name,
-                symbol
-            )
-        )
-
-        // Обновление цвета кнопок в зависимости от текущего состояния
-        updateButtonColors(binding)
-
         // Обработчик клика на кнопку "Обзор"
-        binding.assetReviewBtn.setOnClickListener {
-            if (!isOverviewSelected) {
-                isOverviewSelected = true
-                updateButtonColors(binding)
-                goToFragment(
-                    AssetOverviewFragment.newInstance(
-                        id,
-                        name,
-                        symbol
-                    )
-                )
-            }
+        binding.assetOverviewBtn.setOnClickListener {
+            viewModel.handleIntent(AssetReviewActivityIntent.OpenAssetOverViewFragment)
         }
 
         // Обработчик клика на кнопку "История"
         binding.assetHistoryBtn.setOnClickListener {
-            if (isOverviewSelected) {
-                isOverviewSelected = false
-                updateButtonColors(binding)
-                goToFragment(SubHistoryFragment.newInstance(symbol))
-            }
+            viewModel.handleIntent(AssetReviewActivityIntent.OpenSubHistoryFragment)
         }
-
-        // Установка названия и символа актива в UI
-        binding.coinName.text = name
-        binding.coinSymbol.text = symbol
-
-        // Загрузка и отображение иконки актива
-        viewModel.loadImage(binding.coinIcon, symbol)
-    }
-
-    /**
-     * Обновление цветов кнопок в зависимости от текущего состояния отображаемого фрагмента.
-     */
-    private fun updateButtonColors(binding: ActivityAssetReviewBinding) {
-        // Определение текущей темы (темная или светлая)
-        val isDarkTheme =
-            resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-
-        val accentColor =
-            getColor(if (isDarkTheme) R.color.accent_background_dark else R.color.accent_background)
-        val defaultColor =
-            getColor(if (isDarkTheme) R.color.accent_button_dark else R.color.view_background)
-
-        // Установка цвета фона для кнопок "Обзор" и "История"
-        binding.assetReviewBtn.backgroundTintList = ColorStateList.valueOf(
-            if (isOverviewSelected) accentColor else defaultColor
-        )
-
-        binding.assetHistoryBtn.backgroundTintList = ColorStateList.valueOf(
-            if (isOverviewSelected) defaultColor else accentColor
-        )
+        // Обработчик кнопки возврата
+        binding.goBack.setOnClickListener {
+            viewModel.handleIntent(AssetReviewActivityIntent.GoBack)
+        }
     }
 
     /**
      * Отмена загрузки иконки при уничтожении активности.
      */
     override fun onDestroy() {
-        viewModel.cancelLoadingImage()
+        viewModel.handleIntent(AssetReviewActivityIntent.CancelLoadingImage)
         super.onDestroy()
     }
 

@@ -1,8 +1,6 @@
 package ru.surf.learn2invest.domain.cryptography
 
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 
 /**
  * Интерфейс для аутентификации пользователя с помощью отпечатка пальца.
@@ -10,11 +8,9 @@ import kotlinx.coroutines.Job
 interface FingerprintAuthenticator {
     /**
      * Проверяет, доступно ли биометрическое аппаратное обеспечение на устройстве.
-     *
-     * @param activity Активити, в которой выполняется проверка.
      * @return True, если биометрическое обеспечение доступно, false иначе.
      */
-    fun isBiometricAvailable(activity: AppCompatActivity): Boolean
+    fun isBiometricAvailable(): Boolean
 
     /**
      * Устанавливает callback-функцию, вызываемую при успешной аутентификации.
@@ -51,10 +47,7 @@ interface FingerprintAuthenticator {
 
     /**
      * Запускает процесс аутентификации с помощью отпечатка пальца.
-     *
-     * @param coroutineScope CoroutineScope для запуска корутин.
      * @param activity Активити, в которой выполняется аутентификация.
-     * @return Job, который можно использовать для отмены корутины.
      */
-    fun auth(coroutineScope: CoroutineScope, activity: AppCompatActivity): Job
+    suspend fun auth(activity: AppCompatActivity)
 }

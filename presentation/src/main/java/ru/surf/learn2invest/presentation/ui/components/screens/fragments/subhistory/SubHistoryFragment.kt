@@ -9,8 +9,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
+import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.presentation.databinding.FragmentAssetHistoryBinding
 import ru.surf.learn2invest.presentation.utils.NoArgException
 import ru.surf.learn2invest.presentation.utils.viewModelCreator
@@ -21,10 +21,11 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 internal class SubHistoryFragment : Fragment() {
-    private lateinit var binding: FragmentAssetHistoryBinding
-
     @Inject
     lateinit var factory: SubHistoryFragmentViewModel.Factory
+
+    @Inject
+    lateinit var adapter: SubHistoryAdapter
 
     // Создание ViewModel с передачей символа монеты для фильтрации данных
     private val viewModel: SubHistoryFragmentViewModel by viewModelCreator {
@@ -33,35 +34,27 @@ internal class SubHistoryFragment : Fragment() {
         )
     }
 
-    @Inject
-    lateinit var adapter: SubHistoryAdapter
-
     /**
      * Инфлейт и настройка layout для фрагмента.
      */
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        binding = FragmentAssetHistoryBinding.inflate(inflater, container, false)
-
-        binding.assetHistory.layoutManager = LinearLayoutManager(this.requireContext())
-        binding.assetHistory.adapter = adapter
+        val binding = FragmentAssetHistoryBinding.inflate(inflater, container, false)
+        initListeners(binding)
         return binding.root
     }
 
-    /**
-     * Набор данных, который отображается в адаптере.
-     */
-    override fun onStart() {
-        super.onStart()
-        lifecycleScope.launch(Dispatchers.Main) {
-            viewModel.data.collect {
+    private fun initListeners(binding: FragmentAssetHistoryBinding) {
+        binding.assetHistory.layoutManager = LinearLayoutManager(requireContext())
+        binding.assetHistory.adapter = adapter
+        lifecycleScope.launchMAIN {
+            viewModel.state.collectLatest {
+                adapter.data = it.data
                 // Отображение данных или сообщение об отсутствии сделок
-                if (it.isEmpty()) {
-                    binding.assetHistory.isVisible = false
-                    binding.noActionsError.isVisible = true
-                } else {
-                    adapter.data = it
+                binding.apply {
+                    assetHistory.isVisible = it.data.isNotEmpty()
+                    noActionsError.isVisible = it.data.isEmpty()
                 }
             }
         }

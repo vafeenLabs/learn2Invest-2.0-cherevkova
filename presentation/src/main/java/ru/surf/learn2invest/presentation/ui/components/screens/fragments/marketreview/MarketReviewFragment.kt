@@ -9,7 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import android.widget.ArrayAdapter
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -17,12 +16,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
+import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.FragmentMarketReviewBinding
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.common.BaseResFragment
 import ru.surf.learn2invest.presentation.utils.setStatusBarColor
+import ru.surf.learn2invest.presentation.utils.textListener
 import javax.inject.Inject
 
 /**
@@ -36,7 +37,13 @@ internal class MarketReviewFragment : BaseResFragment() {
     private var realTimeUpdateJob: Job? = null
 
     @Inject
-    lateinit var adapter: MarketReviewAdapter
+    lateinit var adapterFactory: MarketReviewAdapter.Factory
+
+    private val adapter: MarketReviewAdapter by lazy {
+        adapterFactory.create {
+            viewModel.handleIntent(MarketReviewFragmentIntent.AddSearchedCoin(it))
+        }
+    }
 
     // Создание представления фрагмента
     override fun onCreateView(
@@ -48,14 +55,17 @@ internal class MarketReviewFragment : BaseResFragment() {
         activity?.apply {
             setStatusBarColor(window, this, R.color.white, R.color.main_background_dark)
         }
+        initListeners(binding)
+        return binding.root
+    }
 
+    private fun initListeners(binding: FragmentMarketReviewBinding) {
         // Настройка RecyclerView для отображения данных
         binding.marketReviewRecyclerview.layoutManager = LinearLayoutManager(this.requireContext())
         binding.marketReviewRecyclerview.adapter = adapter
-
         // Слушаем изменения фильтрации
-        lifecycleScope.launchMAIN {
-            viewModel.state.collect { state ->
+        viewLifecycleOwner.lifecycleScope.launchMAIN {
+            viewModel.state.collectLatest { state ->
                 binding.apply {
                     if (state.filterOrder) {
                         filterByPrice.setIconResource(R.drawable.arrow_top_green)
@@ -70,18 +80,22 @@ internal class MarketReviewFragment : BaseResFragment() {
                     networkErrorTv.isVisible = state.isError
                     networkErrorIv.isVisible = state.isError
 
-                    if (state.isSearch) {
-                        adapter.data = state.searchedData
-                    } else {
-                        adapter.data = state.data
-                        binding.searchEditText.setAdapter(
-                            ArrayAdapter(
-                                this@MarketReviewFragment.requireContext(),
-                                android.R.layout.simple_expandable_list_item_1,
-                                state.data.map { element -> element.name })
-                        )
+                    if (!state.isSearch) {
+                        searchEditText.text.clear()
                     }
-
+                    youSearch.isVisible =
+                        state.data.isNotEmpty() && state.searchRequest.isBlank() && state.isSearch
+                    clearTv.isVisible =
+                        state.data.isNotEmpty() && state.searchRequest.isBlank() && state.isSearch
+                    cancelTV.isVisible = state.isSearch
+                    filterByPrice.isVisible = !state.isSearch
+                    filterByMarketcap.isVisible = !state.isSearch
+                    filterByChangePercent24Hr.isVisible = !state.isSearch
+                    adapter.data = when {
+                        state.isSearch && state.searchRequest.isNotEmpty() -> state.dataBySearchRequest
+                        state.isSearch && state.searchRequest.isEmpty() -> state.searchedData
+                        else -> state.data
+                    }
                     state.filterState.also {
                         val isDarkTheme =
                             resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
@@ -136,63 +150,45 @@ internal class MarketReviewFragment : BaseResFragment() {
                             )
                     }
 
-                    state.isSearch.also {
-                        youSearch.isVisible = it
-                        clearTv.isVisible = it
-                        cancelTV.isVisible = it
-                        filterByPrice.isVisible = it.not()
-                        filterByMarketcap.isVisible = it.not()
-                        filterByChangePercent24Hr.isVisible = it.not()
-                        searchEditText.text.clear()
-                        if (it) searchEditText.hint = ""
-                        if (it) adapter.data = state.searchedData
-                        else adapter.data = state.data
-                    }
                 }
             }
         }
-
-
         // Настройка обработчиков нажатий на кнопки фильтрации
         binding.apply {
             filterByMarketcap.setOnClickListener {
                 marketReviewRecyclerview.layoutManager?.scrollToPosition(0)
-                viewModel.filterByMarketcap()
+                viewModel.handleIntent(MarketReviewFragmentIntent.FilterByMarketCap)
             }
 
             filterByChangePercent24Hr.setOnClickListener {
                 marketReviewRecyclerview.layoutManager?.scrollToPosition(0)
-                viewModel.filterByPercent()
+                viewModel.handleIntent(MarketReviewFragmentIntent.FilterByPercent)
             }
 
             filterByPrice.setOnClickListener {
                 marketReviewRecyclerview.layoutManager?.scrollToPosition(0)
-                viewModel.filterByPrice()
-            }
-
-            textInputLayout.setEndIconOnClickListener {
-                searchEditText.text.clear()
+                viewModel.handleIntent(MarketReviewFragmentIntent.FilterByPrice)
             }
 
             searchEditText.setOnFocusChangeListener { _, hasFocus ->
-                if (hasFocus) viewModel.setSearchState(true)
+                if (hasFocus) viewModel.handleIntent(MarketReviewFragmentIntent.SetSearchState(true))
             }
 
-            searchEditText.setOnItemClickListener { _, _, _, _ ->
-                viewModel.setSearchState(true, searchEditText.text.toString())
-            }
 
             clearTv.setOnClickListener {
-                viewModel.clearSearchData()
+                viewModel.handleIntent(MarketReviewFragmentIntent.ClearSearchData)
             }
 
             cancelTV.setOnClickListener {
-                viewModel.setSearchState(false)
+                viewModel.handleIntent(MarketReviewFragmentIntent.SetSearchState(false))
                 hideKeyboardFrom(requireContext(), searchEditText)
             }
+            searchEditText.addTextChangedListener(textListener(afterTextChanged = {
+                viewModel.handleIntent(
+                    MarketReviewFragmentIntent.UpdateSearchRequest(searchRequest = it.toString())
+                )
+            }))
         }
-
-        return binding.root
     }
 
     // Запуск обновлений данных в реальном времени
@@ -208,14 +204,14 @@ internal class MarketReviewFragment : BaseResFragment() {
     }
 
     // Функция для обновления данных каждую 5 секунд
-    private fun startRealtimeUpdate() = lifecycleScope.launch {
+    private fun startRealtimeUpdate() = lifecycleScope.launchIO {
         while (true) {
             delay(5000)
             val firstElement =
                 (binding.marketReviewRecyclerview.layoutManager as LinearLayoutManager).findFirstVisibleItemPosition()
             val lastElement =
                 (binding.marketReviewRecyclerview.layoutManager as LinearLayoutManager).findLastVisibleItemPosition()
-            viewModel.updateData(firstElement, lastElement)
+//            viewModel.handleIntent(MarketReviewFragmentIntent.UpdateData(firstElement, lastElement))
         }
     }
 

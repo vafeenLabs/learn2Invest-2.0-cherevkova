@@ -1,6 +1,5 @@
 package ru.surf.learn2invest.data.database_components.repository
 
-import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.surf.learn2invest.data.converters.AssetInvestConverter
@@ -33,7 +32,6 @@ internal class AssetInvestRepositoryImpl @Inject constructor(
 
     override fun getBySymbol(symbol: String): Flow<AssetInvest?> =
         assetInvestDao.getBySymbol(symbol).map {
-            Log.d("db", it.toString())
             if (it != null) assetInvestConverter.convertAB(it) else null
         }
 }

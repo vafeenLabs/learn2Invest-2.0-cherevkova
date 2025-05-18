@@ -25,7 +25,7 @@ import javax.inject.Inject
  * Используется для отображения данных транзакций, включая иконки монет и другую информацию.
  */
 internal class HistoryFragmentAdapter @Inject constructor(
-    @ActivityContext var context: Context,
+    @ActivityContext private val context: Context,
     private val loadCoinIconUseCase: LoadCoinIconUseCase,
 ) : RecyclerView.Adapter<HistoryFragmentAdapter.ViewHolder>() {
 

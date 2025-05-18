@@ -9,8 +9,12 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.qualifiers.ActivityContext
 import ru.surf.learn2invest.domain.domain_models.CoinReview
+import ru.surf.learn2invest.domain.domain_models.SearchedCoin
 import ru.surf.learn2invest.domain.services.coin_icon_loader.usecase.LoadCoinIconUseCase
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_review.AssetReviewActivity
@@ -18,15 +22,15 @@ import ru.surf.learn2invest.presentation.utils.getWithCurrency
 import ru.surf.learn2invest.presentation.utils.round
 import java.text.NumberFormat
 import java.util.Locale
-import javax.inject.Inject
 
 /**
  * Adapter для отображения списка обзора рынка в RecyclerView.
  * @param loadCoinIconUseCase use case для загрузки и отображения иконки монеты.
  * @param context контекст для работы с ресурсами и запуском Activity.
  */
-internal class MarketReviewAdapter @Inject constructor(
+internal class MarketReviewAdapter @AssistedInject constructor(
     private val loadCoinIconUseCase: LoadCoinIconUseCase,
+    @Assisted private val insertSearchedCoinCallback: (SearchedCoin) -> Unit,
     @ActivityContext var context: Context
 ) : RecyclerView.Adapter<MarketReviewAdapter.ViewHolder>() {
 
@@ -113,7 +117,14 @@ internal class MarketReviewAdapter @Inject constructor(
                         coin.symbol
                     )
                 )
+                insertSearchedCoinCallback.invoke(SearchedCoin(coinID = coin.id))
             }
         }
     }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(insertSearchedCoinCallback: (SearchedCoin) -> Unit): MarketReviewAdapter
+    }
+
 }

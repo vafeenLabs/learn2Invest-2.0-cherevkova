@@ -1,13 +1,16 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.subhistory
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.database.usecase.GetFilteredBySymbolTransactionUseCase
-import ru.surf.learn2invest.domain.domain_models.Transaction
+import ru.surf.learn2invest.domain.utils.launchIO
 
 
 /**
@@ -30,12 +33,20 @@ internal class SubHistoryFragmentViewModel @AssistedInject constructor(
      * Символ монеты, который передается в ViewModel. Это строка, которая представляет уникальный идентификатор монеты
      * (например, "BTC", "ETH" и т.д.), по которому будут отфильтрованы транзакции.
      */
-    @Assisted val symbol: String
-) : ViewModel() {
+    @Assisted val symbol: String,
 
-    // Поток данных с фильтрацией по символу монеты
-    var data: Flow<List<Transaction>> =
-        getFilteredBySymbolTransactionUseCase(symbol).map { it.reversed() }
+    ) : ViewModel() {
+    private val _state = MutableStateFlow(SubHistoryFragmentState())
+    val state = _state.asStateFlow()
+    fun handleIntent() {}
+
+    init {
+        viewModelScope.launchIO {
+            getFilteredBySymbolTransactionUseCase(symbol).map { it.reversed() }.collect { data ->
+                _state.update { it.copy(data = data) }
+            }
+        }
+    }
 
     /**
      * Фабрика для создания ViewModel с передачей параметра символа монеты.

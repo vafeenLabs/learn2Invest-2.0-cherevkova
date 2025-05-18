@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
 import ru.surf.learn2invest.presentation.databinding.SimpleDialogBinding
+
 /**
  * Абстрактный класс для удобного создания AlertDialog с привязкой к разметке.
  * Все диалоги, наследующие этот класс, должны реализовывать `initListeners()`
@@ -20,18 +21,13 @@ internal abstract class CustomAlertDialog : DialogFragment() {
      */
     abstract val dialogTag: String
 
-    /**
-     * Привязка к макету диалогового окна.
-     */
-    protected lateinit var binding: SimpleDialogBinding
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        binding = SimpleDialogBinding.inflate(inflater)
-        initListeners()
+        val binding = SimpleDialogBinding.inflate(inflater)
+        initListeners(binding)
         return binding.root
     }
 
@@ -39,7 +35,7 @@ internal abstract class CustomAlertDialog : DialogFragment() {
      * Метод для инициализации слушателей событий внутри диалогового окна.
      * Должен быть реализован в наследуемых классах.
      */
-    abstract fun initListeners()
+    abstract fun initListeners(binding: SimpleDialogBinding)
 
     /**
      * Показывает диалоговое окно, используя переданный FragmentManager.

@@ -17,9 +17,6 @@ import ru.surf.learn2invest.presentation.utils.setNavigationBarColor
 @AndroidEntryPoint
 internal class HostActivity : AppCompatActivity() {
 
-    // Переменная для привязки элементов UI
-    private lateinit var binding: ActivityHostBinding
-
     /**
      * Метод жизненного цикла активити, вызываемый при создании.
      * Здесь настраивается внешний вид экрана и навигация.
@@ -38,7 +35,7 @@ internal class HostActivity : AppCompatActivity() {
         )
 
         // Привязка интерфейса с использованием ActivityHostBinding
-        binding = ActivityHostBinding.inflate(layoutInflater)
+        val binding = ActivityHostBinding.inflate(layoutInflater)
 
         // Устанавливаем разметку для активности
         setContentView(binding.root)

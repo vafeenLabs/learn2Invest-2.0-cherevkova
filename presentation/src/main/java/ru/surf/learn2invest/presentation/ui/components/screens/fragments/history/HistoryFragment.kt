@@ -9,8 +9,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
-import ru.surf.learn2invest.domain.utils.launchIO
-import ru.surf.learn2invest.domain.utils.withContextMAIN
+import ru.surf.learn2invest.domain.utils.launchMAIN
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.FragmentHistoryBinding
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.common.BaseResFragment
@@ -41,23 +40,24 @@ internal class HistoryFragment : BaseResFragment() {
                 R.color.accent_background_dark
             )
         }
+        return FragmentHistoryBinding.inflate(inflater, container, false).also {
+            initListeners(it)
+        }.root
+    }
 
-        val binding = FragmentHistoryBinding.inflate(inflater, container, false)
+    private fun initListeners(binding: FragmentHistoryBinding) {
         binding.historyRecyclerview.layoutManager = LinearLayoutManager(requireContext())
         binding.historyRecyclerview.adapter = adapter
-        lifecycleScope.launchIO {
-            viewModel.data.collect {
-                withContextMAIN {
-                    if (it.isEmpty()) {
-                        binding.historyRecyclerview.isVisible = false
-                        binding.noActionsTv.isVisible = true
-                    } else {
-                        adapter.data = it
-                    }
+        viewLifecycleOwner.lifecycleScope.launchMAIN {
+            viewModel.state.collect {
+                val data = it.data
+                if (data.isEmpty()) {
+                    binding.historyRecyclerview.isVisible = false
+                    binding.noActionsTv.isVisible = true
+                } else {
+                    adapter.data = data
                 }
             }
         }
-        return binding.root
     }
-
 }

@@ -22,7 +22,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/textInputLayout"
         android:layout_width="0dp"
-        android:layout_height="44dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="35dp"
         android:layout_marginTop="25dp"
         android:layout_marginEnd="25dp"
@@ -38,25 +38,25 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView">
 
-        <AutoCompleteTextView
+        <EditText
             android:id="@+id/search_edit_text"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:drawableStart="@drawable/magnifying_glass"
+            android:autofillHints=""
             android:drawablePadding="16dp"
+            android:enabled="true"
             android:hint="@string/search"
             android:imeOptions="actionSearch"
             android:singleLine="true"
             android:textAppearance="@style/Text.Regular.14"
-            android:textColorHint="@color/hint" />
+            android:textColorHint="@color/hint"
+            app:drawableStartCompat="@drawable/magnifying_glass" />
     </com.google.android.material.textfield.TextInputLayout>
-
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/filter_by_marketcap"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
         android:layout_marginEnd="11dp"
         android:paddingHorizontal="12dp"
         android:paddingVertical="12dp"
@@ -65,7 +65,7 @@
         android:textColor="?attr/colorOnBackground"
         android:visibility="visible"
         app:layout_constraintEnd_toStartOf="@+id/filter_by_change_percent_24Hr"
-        app:layout_constraintTop_toBottomOf="@+id/textInputLayout"
+        app:layout_constraintTop_toTopOf="@+id/filter_by_change_percent_24Hr"
         tools:backgroundTint="?attr/colorAccent" />
 
     <com.google.android.material.button.MaterialButton
@@ -81,7 +81,7 @@
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textInputLayout"
+        app:layout_constraintTop_toBottomOf="@+id/youSearch"
         tools:backgroundTint="?attr/colorPrimaryVariant" />
 
     <com.google.android.material.button.MaterialButton
@@ -89,7 +89,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="11dp"
-        android:layout_marginTop="24dp"
         android:paddingHorizontal="12dp"
         android:paddingVertical="12dp"
         android:text="@string/price"
@@ -102,7 +101,7 @@
         app:iconSize="24dp"
         app:iconTint="@color/label"
         app:layout_constraintStart_toEndOf="@+id/filter_by_change_percent_24Hr"
-        app:layout_constraintTop_toBottomOf="@+id/textInputLayout"
+        app:layout_constraintTop_toTopOf="@+id/filter_by_change_percent_24Hr"
         tools:backgroundTint="?attr/colorPrimaryVariant" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -110,13 +109,13 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="19dp"
-        android:layout_marginTop="86dp"
+        android:layout_marginTop="20dp"
         android:layout_marginEnd="19dp"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textInputLayout"
+        app:layout_constraintTop_toBottomOf="@+id/filter_by_change_percent_24Hr"
         tools:listitem="@layout/coin_item" />
 
     <TextView
@@ -193,4 +192,11 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/vertical_chain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:constraint_referenced_ids="textInputLayout,youSearch,filter_by_change_percent_24Hr,market_review_recyclerview"
+        app:layout_constraintVertical_chainStyle="packed" />
 </androidx.constraintlayout.widget.ConstraintLayout>

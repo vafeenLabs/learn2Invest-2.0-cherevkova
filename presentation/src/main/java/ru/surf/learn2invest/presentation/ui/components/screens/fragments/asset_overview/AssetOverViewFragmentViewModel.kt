@@ -1,15 +1,18 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_overview
 
-import android.util.Log
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mikephil.charting.data.Entry
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.database.usecase.GetBySymbolAssetInvestUseCase
@@ -19,6 +22,7 @@ import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinHistoryUseCase
 import ru.surf.learn2invest.domain.network.usecase.GetCoinReviewUseCase
 import ru.surf.learn2invest.domain.utils.launchIO
+import ru.surf.learn2invest.presentation.ui.components.chart.Last7DaysFormatter
 import ru.surf.learn2invest.presentation.ui.components.chart.LineChartHelper
 import ru.surf.learn2invest.presentation.utils.formatAsPrice
 import ru.surf.learn2invest.presentation.utils.getWithCurrency
@@ -32,23 +36,59 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
     private val getCoinHistoryUseCase: GetCoinHistoryUseCase,
     private val getCoinReviewUseCase: GetCoinReviewUseCase,
     getBySymbolAssetInvestUseCase: GetBySymbolAssetInvestUseCase,
-    @Assisted("id") val id: String,
-    @Assisted("name") val name: String,
-    @Assisted("symbol") val symbol: String,
+    @Assisted("id") private val id: String,
+    @Assisted("name") private val name: String,
+    @Assisted("symbol") private val symbol: String,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     private var data = listOf<Entry>()
-    lateinit var chartHelper: LineChartHelper
+    private var chartHelper: LineChartHelper? = null
     private var realTimeUpdateJob: Job? = null
-
 
     private val _state = MutableStateFlow(AssetOverviewState())
     val state = _state.asStateFlow()
+    private val _effects = MutableSharedFlow<AssetOverviewFragmentEffect>()
+    val effects = _effects.asSharedFlow()
+    fun handleIntent(intent: AssetOverviewFragmentIntent) {
+        viewModelScope.launchIO {
+            when (intent) {
+                is AssetOverviewFragmentIntent.SetupChartAndLoadChartData -> {
+                    chartHelper = LineChartHelper(context, Last7DaysFormatter())
+                    chartHelper?.setupChart(intent.lineChart)
+                    loadChartData()
+                }
+
+                AssetOverviewFragmentIntent.StartUpdatingPriceFLow -> {
+                    startRealTimeUpdate()
+                }
+
+                AssetOverviewFragmentIntent.StopUpdatingPriceFLow -> {
+                    stopRealTimeUpdateJob()
+                }
+
+                AssetOverviewFragmentIntent.BuyAsset -> _effects.emit(
+                    AssetOverviewFragmentEffect.OpenBuyDialog(
+                        id,
+                        name,
+                        symbol
+                    )
+                )
+
+                AssetOverviewFragmentIntent.SellAsset -> _effects.emit(
+                    AssetOverviewFragmentEffect.OpenSellDialog(
+                        id,
+                        name,
+                        symbol
+                    )
+                )
+            }
+        }
+    }
 
     init {
         viewModelScope.launchIO {
             getBySymbolAssetInvestUseCase.invoke(symbol).collect { assetInvest ->
                 _state.update {
-                    Log.d("state", it.toString())
                     it.copy(
                         coin = assetInvest ?: AssetInvest(
                             assetID = id,
@@ -83,12 +123,11 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
         }
         updateStateDependsOnPrice()
 
-        chartHelper.updateData(data)
+        chartHelper?.updateData(data)
     }
 
     private fun updateStateDependsOnPrice() {
         _state.update { state ->
-            Log.d("state", "in update $state")
             val asset = state.coin
             state.copy(
                 finResult = (if (asset != null && asset.amount != 0 && state.price != null) {
@@ -112,7 +151,7 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
     /**
      * Загрузка исторических данных для актива и обновление графика.
      */
-    fun loadChartData() {
+    private fun loadChartData() {
         viewModelScope.launchIO {
             val response = getCoinHistoryUseCase(id)
             if (response is ResponseResult.Success) {
@@ -130,7 +169,7 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
     /**
      * Запуск реального обновления данных с интервалом в 5 секунд.
      */
-    fun startRealTimeUpdate() {
+    private fun startRealTimeUpdate() {
         realTimeUpdateJob = viewModelScope.launchIO {
             while (true) {
                 val result = getCoinReviewUseCase(id)
@@ -147,7 +186,7 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
     /**
      * Остановка работы с реальными данными.
      */
-    fun stopRealTimeUpdateJob() {
+    private fun stopRealTimeUpdateJob() {
         realTimeUpdateJob?.cancel()
         realTimeUpdateJob = null
     }

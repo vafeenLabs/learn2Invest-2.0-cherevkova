@@ -2,7 +2,6 @@ package ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_
 
 import android.content.res.Configuration
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,8 +14,6 @@ import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.FragmentAssetOverviewBinding
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.buy_dialog.BuyDialog
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.sell_dialog.SellDialog
-import ru.surf.learn2invest.presentation.ui.components.chart.Last7DaysFormatter
-import ru.surf.learn2invest.presentation.ui.components.chart.LineChartHelper
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.common.BaseResFragment
 import ru.surf.learn2invest.presentation.utils.NoArgException
 import ru.surf.learn2invest.presentation.utils.formatAsPrice
@@ -51,31 +48,12 @@ internal class AssetOverviewFragment : BaseResFragment() {
         val binding = FragmentAssetOverviewBinding.inflate(inflater, container, false)
 
         // Настройка и загрузка данных для графика
-        viewModel.chartHelper = LineChartHelper(requireContext(), Last7DaysFormatter())
-        viewModel.chartHelper.setupChart(binding.chart)
-        viewModel.loadChartData()
+        viewModel.handleIntent(
+            AssetOverviewFragmentIntent.SetupChartAndLoadChartData(
+                binding.chart
+            )
+        )
 
-        // Сбор и отображение информации о монете
-        lifecycleScope.launchMAIN {
-            viewModel.state.collectLatest { state ->
-                binding.coin.root.isVisible =
-                    state.finResult != null && state.coinCostResult != null && state.coinPriceChangesResult != null && state.coin?.amount!= null
-                binding.sellBuyBtns.isVisible = state.price != null
-                binding.coin.apply {
-                    finResult.text = state.finResult?.formattedStr()
-                    state.finResult?.let { finResult.setTextColor(getColorRes(it.color())) }
-                    coinsCost.text = state.coinCostResult
-                    coinsPrice.text = state.coinPriceChangesResult
-                    coinsCount.text = state.coin?.amount?.let { "$it" }
-                }
-                binding.capitalisation.text = state.marketCap?.let {
-                    NumberFormat.getInstance(Locale.US).apply {
-                        maximumFractionDigits = 0
-                    }.format(it).getWithCurrency()
-                }
-                binding.price.text = state.price?.formatAsPrice(8)?.getWithCurrency()
-            }
-        }
 
         // Определение темы (темная или светлая)
         val isDarkTheme =
@@ -94,25 +72,70 @@ internal class AssetOverviewFragment : BaseResFragment() {
 
     override fun onStart() {
         super.onStart()
-        viewModel.startRealTimeUpdate()
+        viewModel.handleIntent(AssetOverviewFragmentIntent.StartUpdatingPriceFLow)
     }
 
     override fun onStop() {
+        viewModel.handleIntent(AssetOverviewFragmentIntent.StopUpdatingPriceFLow)
         super.onStop()
-        viewModel.stopRealTimeUpdateJob()
     }
 
     private fun initListeners(binding: FragmentAssetOverviewBinding) {
         // Обработчик кнопки "Купить актив"
         binding.buyAssetBtn.setOnClickListener {
-            BuyDialog.newInstance(viewModel.id, viewModel.name, viewModel.symbol)
-                .showDialog(parentFragmentManager)
+            viewModel.handleIntent(AssetOverviewFragmentIntent.BuyAsset)
         }
 
         // Обработчик кнопки "Продать актив"
         binding.sellAssetBtn.setOnClickListener {
-            SellDialog.newInstance(viewModel.id, viewModel.name, viewModel.symbol)
-                .showDialog(parentFragmentManager)
+            viewModel.handleIntent(AssetOverviewFragmentIntent.SellAsset)
+        }
+
+        // Сбор и отображение информации о монете
+        viewLifecycleOwner.lifecycleScope.launchMAIN {
+            viewModel.state.collectLatest { state ->
+                binding.coinItemLayout.isVisible =
+                    state.finResult != null && state.coinCostResult != null && state.coinPriceChangesResult != null && (state.coin?.amount != null)
+                binding.sellBuyBtns.isVisible = state.price != null
+                binding.coin.apply {
+                    finResult.text = state.finResult?.formattedStr()
+                    state.finResult?.let { finResult.setTextColor(getColorRes(it.color())) }
+                    coinsCost.text = state.coinCostResult
+                    coinsPrice.text = state.coinPriceChangesResult
+                    coinsCount.text = state.coin?.amount?.let { "$it" }
+                }
+                binding.capitalisation.text = state.marketCap?.let {
+                    NumberFormat.getInstance(Locale.US).apply {
+                        maximumFractionDigits = 0
+                    }.format(it).getWithCurrency()
+                }
+                binding.price.text = state.price?.formatAsPrice(8)?.getWithCurrency()
+            }
+        }
+
+        // Обработка сайд эффектов
+        viewLifecycleOwner.lifecycleScope.launchMAIN {
+            viewModel.effects.collect { effect ->
+                when (effect) {
+                    is AssetOverviewFragmentEffect.OpenBuyDialog -> {
+                        BuyDialog.newInstance(
+                            effect.id,
+                            effect.name,
+                            effect.symbol
+                        )
+                            .showDialog(parentFragmentManager)
+                    }
+
+                    is AssetOverviewFragmentEffect.OpenSellDialog -> {
+                        SellDialog.newInstance(
+                            effect.id,
+                            effect.name,
+                            effect.symbol
+                        )
+                            .showDialog(parentFragmentManager)
+                    }
+                }
+            }
         }
     }
 

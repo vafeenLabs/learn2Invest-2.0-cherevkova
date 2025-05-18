@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,9 +12,8 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
-import ru.surf.learn2invest.domain.utils.launchIO
+import kotlinx.coroutines.flow.collectLatest
 import ru.surf.learn2invest.domain.utils.launchMAIN
-import ru.surf.learn2invest.domain.utils.withContextMAIN
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.databinding.DialogBuyBinding
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.parent.CustomBottomSheetDialog
@@ -78,69 +76,51 @@ internal class BuyDialog : CustomBottomSheetDialog() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View {
-        val binding = DialogBuyBinding.inflate(layoutInflater)
-        initListeners(binding)
-        return binding.root
-    }
+    ): View = DialogBuyBinding.inflate(layoutInflater).also { initListeners(it) }.root
 
     /**
      * Инициализация обработчиков событий для элементов интерфейса.
      */
     private fun initListeners(binding: DialogBuyBinding) {
         binding.apply {
-
-
             buttonBuy.isVisible = false
-
             buttonBuy.setOnClickListener {
-                lifecycleScope.launchIO {
-                    Log.d("hello", "start buy")
-                    viewModel.buy()
-                    dismiss()
-                }
+                viewModel.handleEvent(BuyDialogIntent.Buy)
             }
 
             imageButtonPlus.setOnClickListener {
-                lifecycleScope.launchIO {
-                    withContextMAIN { imageButtonPlus.isEnabled = false }
-                    viewModel.plusLot()
-                    withContextMAIN { imageButtonPlus.isEnabled = true }
-                }
+                viewModel.handleEvent(BuyDialogIntent.PlusLot)
             }
 
             imageButtonMinus.setOnClickListener {
-                lifecycleScope.launchIO {
-                    withContextMAIN { imageButtonMinus.isEnabled = false }
-                    viewModel.minusLot()
-                    withContextMAIN { imageButtonMinus.isEnabled = true }
-                }
+                viewModel.handleEvent(BuyDialogIntent.MinusLot)
             }
 
             enteringNumberOfLots.addTextChangedListener(
                 textListener(afterTextChanged = {
-                    lifecycleScope.launchMAIN {
-                        viewModel.setLot(
+                    viewModel.handleEvent(
+                        BuyDialogIntent.SetLot(
                             binding.enteringNumberOfLots.text.toString().toIntOrNull() ?: 0
                         )
-                    }
+                    )
                 })
             )
-
-
 
             if (tradingPassword.isVisible) {
                 tradingPasswordTV.addTextChangedListener(
                     textListener(afterTextChanged = {
-                        lifecycleScope.launchIO {
-                            viewModel.setTradingPassword(binding.tradingPassword.editText?.text.toString())
-                        }
+
+                        viewModel.handleEvent(
+                            BuyDialogIntent.SetTradingPassword(
+                                binding.tradingPassword.editText?.text.toString()
+                            )
+                        )
                     })
                 )
             }
 
-            lifecycleScope.launchMAIN {
-                viewModel.stateFlow.collect { state ->
+            viewLifecycleOwner.lifecycleScope.launchMAIN {
+                viewModel.state.collectLatest { state ->
                     val lotsData = state.lotsData
                     val currentPrice = state.currentPrice
 
@@ -151,9 +131,8 @@ internal class BuyDialog : CustomBottomSheetDialog() {
                     if (currentPrice != null) {
                         val willPrice = currentPrice * lotsData.lots
                         when {
-                            viewModel.isTrueTradingPasswordOrIsNotDefinedUseCase.invoke(
-                                state.profile, state.tradingPassword
-                            ) && lotsData.lots > 0f && fiatBalance != 0f && willPrice <= fiatBalance -> {
+                            viewModel.isTrueTradingPasswordOrIsNotDefinedUseCase.invoke(state.tradingPassword) &&
+                                    lotsData.lots > 0f && fiatBalance != 0f && willPrice <= fiatBalance -> {
                                 buttonBuy.isVisible = true
                                 result.text =
                                     "${requireContext().getString(R.string.itog)} ${willPrice.getWithCurrency()}"
@@ -185,17 +164,22 @@ internal class BuyDialog : CustomBottomSheetDialog() {
                             fiatBalance != 0f
                 }
             }
+            viewLifecycleOwner.lifecycleScope.launchMAIN {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        BuyDialogEffect.Dismiss -> {
+                            dismiss()
+                        }
+                    }
+                }
+            }
         }
     }
 
-    /**
-     * Закрывает диалог и останавливает поток обновления цен.
-     */
-    override fun dismiss() {
-        super.dismiss()
-        viewModel.stopUpdatingPriceFlow()
+    override fun onDetach() {
+        super.onDetach()
+        viewModel.handleEvent(BuyDialogIntent.StopUpdatingPriceFLow)
     }
-
 
     /**
      * Рассчитывает максимальное количество лотов, доступных для покупки.
@@ -204,11 +188,7 @@ internal class BuyDialog : CustomBottomSheetDialog() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        lifecycleScope.launchIO {
-            viewModel.setAssetIfInDB()
-        }.invokeOnCompletion {
-            viewModel.startUpdatingPriceFLow()
-        }
+        viewModel.handleEvent(BuyDialogIntent.SetupAssetIfInDbAndStartUpdatingPriceFLow)
     }
 
     companion object {

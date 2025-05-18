@@ -1,11 +1,17 @@
 package ru.surf.learn2invest.presentation.ui.components.alert_dialogs.reset_stats
 
 import android.content.Context
-import android.widget.Toast
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import ru.surf.learn2invest.domain.database.usecase.ClearAppDatabaseUseCase
 import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.domain.utils.withContextIO
 import ru.surf.learn2invest.presentation.R
 import javax.inject.Inject
@@ -23,7 +29,30 @@ import javax.inject.Inject
 internal class ResetStatsDialogViewModel @Inject constructor(
     private val profileManager: ProfileManager,
     private val clearAppDatabaseUseCase: ClearAppDatabaseUseCase,
+    @ApplicationContext val context: Context
 ) : ViewModel() {
+    private val _effects = MutableSharedFlow<ResetStatsDialogEffect>()
+    val effects = _effects.asSharedFlow()
+    private val _state = MutableStateFlow(
+        ResetStatsDialogState(
+            text = context.getString(R.string.reset_stats)
+        )
+    )
+    val state = _state.asStateFlow()
+
+    fun handleIntent(intent: ResetStatsDialogIntent) {
+        viewModelScope.launchIO {
+            when (intent) {
+                ResetStatsDialogIntent.ResetStats -> {
+                    resetStats()
+                }
+
+                ResetStatsDialogIntent.Dismiss -> {
+                    _effects.emit(ResetStatsDialogEffect.Dismiss)
+                }
+            }
+        }
+    }
 
     /**
      * Сбрасывает статистику пользователя, обнуляя баланс и очищая базу данных.
@@ -35,7 +64,7 @@ internal class ResetStatsDialogViewModel @Inject constructor(
      *
      * @param context Контекст приложения, необходимый для отображения уведомления.
      */
-    suspend fun resetStats(context: Context) {
+    private suspend fun resetStats() {
         // Создаем копию текущего профиля с обнулением балансов
         val savedProfile = profileManager.profileFlow.value.copy(
             fiatBalance = 0f,
@@ -51,6 +80,7 @@ internal class ResetStatsDialogViewModel @Inject constructor(
         }
 
         // Показ уведомления о сбросе статистики
-        Toast.makeText(context, context.getString(R.string.stat_reset), Toast.LENGTH_LONG).show()
+        _effects.emit(ResetStatsDialogEffect.ToastResetStateSuccessful)
+        _effects.emit(ResetStatsDialogEffect.Dismiss)
     }
 }

@@ -7,16 +7,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.database.usecase.GetAllAssetBalanceHistoryUseCase
 import ru.surf.learn2invest.domain.database.usecase.GetAllAssetInvestUseCase
 import ru.surf.learn2invest.domain.database.usecase.GetBySymbolAssetInvestUseCase
@@ -31,7 +31,6 @@ import ru.surf.learn2invest.domain.utils.launchIO
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Calendar
-import java.util.Date
 import javax.inject.Inject
 
 /**
@@ -57,44 +56,72 @@ internal class PortfolioFragmentViewModel @Inject constructor(
     private val insertByLimitAssetBalanceHistoryUseCase: InsertByLimitAssetBalanceHistoryUseCase,
     private val getCoinReviewUseCase: GetCoinReviewUseCase,
     private val getBySymbolAssetInvestUseCase: GetBySymbolAssetInvestUseCase,
-) :
-    ViewModel() {
-
+) : ViewModel() {
     // Константа для ограничения размера истории баланса
-    private val HISTORY_LIMIT_SIZE = 7
+    private val historyLimitSize = 7
 
-    // Состояние данных графика активов
-    private val _chartData = MutableStateFlow<List<Entry>>(emptyList())
-    val chartData: StateFlow<List<Entry>> = _chartData
+    private val _state = MutableStateFlow(PortfolioFragmentState())
+    val state = _state.asStateFlow()
+    private val _effects = MutableSharedFlow<PortfolioFragmentEffect>()
+    val effects = _effects.asSharedFlow()
+    fun handleIntent(intent: PortfolioFragmentIntent) {
+        viewModelScope.launchIO {
+            when (intent) {
+                PortfolioFragmentIntent.StartRealtimeUpdate -> startUpdatingPriceFLow()
+                PortfolioFragmentIntent.StopRealtimeUpdate -> stopUpdatingPriceFlow()
+                is PortfolioFragmentIntent.StartAssetReviewActivity -> startAssetReviewActivity(
+                    id = intent.id, name = intent.name, symbol = intent.symbol
+                )
 
-    // Баланс активов пользователя
-    private val assetBalance = profileManager.profileFlow
-        .map { profile -> profile.assetBalance }
-        .stateIn(viewModelScope, started = SharingStarted.Lazily, 0f)
-
-    // Баланс фиатных средств пользователя
-    val fiatBalance: Flow<Float> = profileManager.profileFlow
-        .map { profile -> profile.fiatBalance }
-        .stateIn(viewModelScope, started = SharingStarted.Lazily, 0f)
-
-    // Общий баланс (активы + фиат)
-    val totalBalance: Flow<Float> =
-        combine(assetBalance, fiatBalance) { assetBalance, fiatBalance ->
-            assetBalance + fiatBalance
+                PortfolioFragmentIntent.OpenDrawer -> openDrawer()
+                PortfolioFragmentIntent.CloseDrawer -> closeDrawer()
+                is PortfolioFragmentIntent.MailTo -> mailTo(intent.mail)
+                is PortfolioFragmentIntent.OpenLink -> openLink(intent.link)
+                PortfolioFragmentIntent.OpenRefillAccountDialog -> openRefillAccountDialog()
+            }
         }
+    }
 
-    // Список активов
-    val assetsFlow: Flow<List<AssetInvest>> = getAllAssetInvestUseCase()
-        .flowOn(Dispatchers.IO)
-        .onEach { assets -> loadPriceChanges(assets) }
+    private suspend fun openRefillAccountDialog() =
+        _effects.emit(PortfolioFragmentEffect.OpenRefillAccountDialog)
 
-    // Изменения цен активов
-    private val _priceChanges = MutableStateFlow<Map<String, Float>>(emptyMap())
-    val priceChanges: StateFlow<Map<String, Float>> get() = _priceChanges
+    private suspend fun openDrawer() = _effects.emit(PortfolioFragmentEffect.OpenDrawer)
 
-    // Процентное изменение портфеля
-    private val _portfolioChangePercentage = MutableStateFlow(0f)
-    val portfolioChangePercentage: StateFlow<Float> get() = _portfolioChangePercentage
+    private suspend fun closeDrawer() = _effects.emit(PortfolioFragmentEffect.CloseDrawer)
+
+    private suspend fun mailTo(mail: String) = _effects.emit(PortfolioFragmentEffect.MailTo(mail))
+
+    private suspend fun openLink(link: String) =
+        _effects.emit(PortfolioFragmentEffect.OpenLink(link))
+
+    init {
+        viewModelScope.launchIO {
+            getAllAssetInvestUseCase().flowOn(Dispatchers.IO)
+                .onEach { assets -> loadPriceChanges(assets) }.collect { assets ->
+                    _state.update { it.copy(assets = assets) }
+                }
+        }
+    }
+
+    init {
+        viewModelScope.launchIO {
+            profileManager.profileFlow.collectLatest { profile ->
+                _state.update {
+                    it.copy(fiatBalance = profile.fiatBalance, assetBalance = profile.assetBalance)
+                }
+            }
+        }
+    }
+
+    private suspend fun startAssetReviewActivity(
+        id: String, name: String, symbol: String
+    ) {
+        _effects.emit(
+            PortfolioFragmentEffect.StartAssetReviewActivity(
+                id = id, name = name, symbol = symbol
+            )
+        )
+    }
 
     // Задача для обновления данных в реальном времени
     private var realTimeUpdateJob: Job? = null
@@ -102,7 +129,7 @@ internal class PortfolioFragmentViewModel @Inject constructor(
     /**
      * Обновляет данные портфеля, включая баланс и цены активов.
      */
-    suspend fun refreshData() {
+    private suspend fun refreshData() {
         checkAndUpdateBalanceHistory()
         loadPriceChanges(getAllAssetInvestUseCase().first())
     }
@@ -112,13 +139,20 @@ internal class PortfolioFragmentViewModel @Inject constructor(
      *
      * @return Список дат всех записей истории баланса активов.
      */
-    suspend fun getAssetBalanceHistoryDates(): List<Date> =
-        getAllAssetBalanceHistoryUseCase().first().map { it.date }
+    init {
+        viewModelScope.launchIO {
+            getAllAssetBalanceHistoryUseCase().map { history ->
+                history.map { it.date }
+            }.collect { dates ->
+                _state.update { it.copy(dates = dates) }
+            }
+        }
+    }
 
     /**
      * Запускает периодическое обновление данных о ценах активов.
      */
-    fun startUpdatingPriceFLow() {
+    private fun startUpdatingPriceFLow() {
         realTimeUpdateJob = viewModelScope.launchIO {
             while (true) {
                 refreshData()
@@ -130,25 +164,28 @@ internal class PortfolioFragmentViewModel @Inject constructor(
     /**
      * Останавливает обновление данных о ценах активов.
      */
-    fun stopUpdatingPriceFlow() {
+    private fun stopUpdatingPriceFlow() {
         realTimeUpdateJob?.cancel()
         realTimeUpdateJob = null
     }
 
-    /**
-     * Обновляет данные графика на основе истории баланса активов.
-     */
-    private suspend fun refreshChartData() {
-        _chartData.value = getAllAssetBalanceHistoryUseCase().first()
-            .mapIndexed { index, assetBalanceHistory ->
-                Entry(index.toFloat(), assetBalanceHistory.assetBalance)
+    init {
+        viewModelScope.launchIO {
+            getAllAssetBalanceHistoryUseCase().collect {
+                _state.update { state ->
+                    state.copy(chartData = it.mapIndexed { index, assetBalanceHistory ->
+                        Entry(index.toFloat(), assetBalanceHistory.assetBalance)
+                    })
+                }
             }
+        }
     }
 
     /**
      * Проверяет и обновляет историю баланса активов, если необходимо.
      */
     private suspend fun checkAndUpdateBalanceHistory() {
+        val state = _state.value
         val today = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
@@ -169,7 +206,7 @@ internal class PortfolioFragmentViewModel @Inject constructor(
             historyDate.time == todayDate
         }
 
-        val totalBalance = assetBalance.first() + fiatBalance.first()
+        val totalBalance = state.assetBalance + state.fiatBalance
 
         if (todayBalanceHistory != null) {
             insertAssetBalanceHistoryUseCase(
@@ -179,11 +216,9 @@ internal class PortfolioFragmentViewModel @Inject constructor(
             )
         } else {
             insertByLimitAssetBalanceHistoryUseCase(
-                HISTORY_LIMIT_SIZE,
-                AssetBalanceHistory(assetBalance = totalBalance, date = todayDate)
+                historyLimitSize, AssetBalanceHistory(assetBalance = totalBalance, date = todayDate)
             )
         }
-        refreshChartData()
     }
 
     /**
@@ -209,11 +244,9 @@ internal class PortfolioFragmentViewModel @Inject constructor(
             }
         }
         profileManager.updateProfile {
-            it.copy(
-                assetBalance = totalCurrentValue
-            )
+            it.copy(assetBalance = totalCurrentValue)
         }
-        _priceChanges.value = priceChanges
+        _state.update { it.copy(priceChanges = priceChanges) }
         calculatePortfolioChangePercentage(totalCurrentValue, initialInvestment)
     }
 
@@ -223,19 +256,19 @@ internal class PortfolioFragmentViewModel @Inject constructor(
      * @param totalCurrentValue Общая текущая стоимость активов.
      * @param initialInvestment Начальная сумма инвестиций.
      */
-    private suspend fun calculatePortfolioChangePercentage(
-        totalCurrentValue: Float,
-        initialInvestment: Float
+    private fun calculatePortfolioChangePercentage(
+        totalCurrentValue: Float, initialInvestment: Float
     ) {
+        val assetBalance = _state.value.assetBalance
         if (initialInvestment != 0f) {
             val portfolioChangePercentage =
-                ((totalCurrentValue + assetBalance.first()) / (initialInvestment + assetBalance.first()) - 1) * 100
-            val roundedPercentage = BigDecimal(portfolioChangePercentage.toDouble())
-                .setScale(2, RoundingMode.HALF_UP)
-                .toFloat()
-            _portfolioChangePercentage.value = roundedPercentage
+                ((totalCurrentValue + assetBalance) / (initialInvestment + assetBalance) - 1) * 100
+            val roundedPercentage =
+                BigDecimal(portfolioChangePercentage.toDouble()).setScale(2, RoundingMode.HALF_UP)
+                    .toFloat()
+            _state.update { it.copy(portfolioChangePercentage = roundedPercentage) }
         } else {
-            _portfolioChangePercentage.value = 0f
+            _state.update { it.copy(portfolioChangePercentage = 0f) }
         }
     }
 }

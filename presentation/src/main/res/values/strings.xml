@@ -63,7 +63,7 @@
     <string name="create">Создать</string>
     <string name="change_trpas">Изменение торгового пароля</string>
     <string name="change">Изменить</string>
-    <string name="remove_trading_password">Удаление торгового пароля</string>
+    <string name="remove_trpas">Удаление торгового пароля</string>
     <string name="remove">Удалить</string>
     <string name="top_market_cap">Топ по $</string>
     <string name="market_review">Обзор рынка</string>

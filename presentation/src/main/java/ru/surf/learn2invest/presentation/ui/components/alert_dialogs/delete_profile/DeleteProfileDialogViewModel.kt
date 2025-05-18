@@ -1,41 +1,50 @@
 package ru.surf.learn2invest.presentation.ui.components.alert_dialogs.delete_profile
 
-import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import ru.surf.learn2invest.domain.database.usecase.ClearAppDatabaseUseCase
-import ru.surf.learn2invest.domain.utils.withContextIO
-import ru.surf.learn2invest.presentation.ui.main.MainActivity
+import ru.surf.learn2invest.domain.utils.launchIO
+import ru.surf.learn2invest.presentation.R
 import javax.inject.Inject
 
-/**
- * ViewModel для обработки удаления профиля пользователя.
- *
- * @property clearAppDatabaseUseCase UseCase для очистки базы данных приложения.
- */
 @HiltViewModel
 internal class DeleteProfileDialogViewModel @Inject constructor(
     private val clearAppDatabaseUseCase: ClearAppDatabaseUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-    /**
-     * Удаляет профиль пользователя, очищает базу данных и перезапускает приложение.
-     *
-     * @param activity Активность, из которой вызывается удаление профиля.
-     */
-    suspend fun deleteProfile(activity: AppCompatActivity) {
-        // Завершает текущую активность.
-        activity.finish()
-
-        // Очищает базу данных в фоновом потоке.
-        withContextIO {
-            clearAppDatabaseUseCase()
-        }
-
-        // Перезапускает приложение, переходя на главный экран.
-        activity.startActivity(
-            Intent(activity, MainActivity::class.java)
+    private val _state = MutableStateFlow(
+        DeleteProfileDialogState(
+            text = context.getString(R.string.asking_to_delete_profile)
         )
+    )
+    val state = _state.asStateFlow()
+    private val _effect = MutableSharedFlow<DeleteProfileDialogEffect>()
+    val effect: SharedFlow<DeleteProfileDialogEffect> = _effect
+
+    fun handle(intent: DeleteProfileDialogIntent) {
+        when (intent) {
+            DeleteProfileDialogIntent.DeleteProfile -> deleteProfile()
+            DeleteProfileDialogIntent.Dismiss -> dismiss()
+        }
+    }
+
+    private fun dismiss() {
+        viewModelScope.launchIO {
+            _effect.emit(DeleteProfileDialogEffect.Dismiss)
+        }
+    }
+
+    private fun deleteProfile() {
+        viewModelScope.launchIO {
+            clearAppDatabaseUseCase()
+            _effect.emit(DeleteProfileDialogEffect.DismissAndRestartApp)
+        }
     }
 }

@@ -1,13 +1,11 @@
 package ru.surf.learn2invest.data.cryptography
 
+import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import dagger.hilt.android.qualifiers.ApplicationContext
 import ru.surf.learn2invest.domain.cryptography.FingerprintAuthenticator
 import java.util.concurrent.Executor
 import javax.inject.Inject
@@ -15,20 +13,19 @@ import javax.inject.Inject
 /**
  * Реализация интерфейса FingerprintAuthenticator для аутентификации пользователя с помощью отпечатка пальца.
  */
-internal class FingerprintAuthenticatorImpl @Inject constructor() : FingerprintAuthenticator {
+internal class FingerprintAuthenticatorImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
+) : FingerprintAuthenticator {
     /**
      * Проверяет, доступно ли биометрическое аппаратное обеспечение на устройстве.
-     *
-     * @param activity Активити, в которой выполняется проверка.
+
      * @return True, если биометрическое обеспечение доступно, false иначе.
      */
-    override fun isBiometricAvailable(activity: AppCompatActivity): Boolean {
-        return BiometricManager.from(activity)
+    override fun isBiometricAvailable(): Boolean = BiometricManager.from(context)
             .canAuthenticate(
                 BiometricManager.Authenticators.BIOMETRIC_STRONG or
                         BiometricManager.Authenticators.DEVICE_CREDENTIAL
             ) == BiometricManager.BIOMETRIC_SUCCESS
-    }
 
     /**
      * Устанавливает callback-функцию, вызываемую при успешной аутентификации.
@@ -79,19 +76,15 @@ internal class FingerprintAuthenticatorImpl @Inject constructor() : FingerprintA
     /**
      * Запускает процесс аутентификации с помощью отпечатка пальца.
      *
-     * @param coroutineScope CoroutineScope для запуска корутин.
      * @param activity Активити, в которой выполняется аутентификация.
      * @return Job, который можно использовать для отмены корутины.
      */
-    override fun auth(
-        coroutineScope: CoroutineScope,
+    override suspend fun auth(
         activity: AppCompatActivity
-    ): Job {
-        return coroutineScope.launch(Dispatchers.Main) {
-            if (isBiometricAvailable(activity = activity)) {
-                initFingerPrintAuth(activity = activity)
-                checkAuthenticationFingerprint()
-            }
+    ) {
+        if (isBiometricAvailable()) {
+            initFingerPrintAuth(activity = activity)
+            checkAuthenticationFingerprint()
         }
     }
 

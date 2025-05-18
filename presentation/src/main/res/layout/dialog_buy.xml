@@ -194,8 +194,6 @@
             app:layout_constraintTop_toTopOf="@+id/balance_card"
             tools:text="@string/example_balance" />
 
-        <!--       TODO: Надь, поправь тут пожалуйста шрифт, как выберешь нужный) -->
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_buy"
             android:layout_width="110dp"

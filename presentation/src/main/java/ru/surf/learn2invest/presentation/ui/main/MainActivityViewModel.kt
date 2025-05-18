@@ -1,11 +1,22 @@
 package ru.surf.learn2invest.presentation.ui.main
 
-import android.view.View
+import android.content.Context
+import android.content.Intent
+import android.widget.TextView
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import ru.surf.learn2invest.domain.animator.usecase.AnimateAlphaUseCase
-import ru.surf.learn2invest.domain.domain_models.Profile
 import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.utils.launchIO
+import ru.surf.learn2invest.domain.utils.withContextMAIN
+import ru.surf.learn2invest.presentation.R
+import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.common.AuthActivity
+import ru.surf.learn2invest.presentation.ui.components.screens.sign_up.SignUpActivity
 import javax.inject.Inject
 
 /**
@@ -18,50 +29,59 @@ import javax.inject.Inject
 internal class MainActivityViewModel @Inject constructor(
     private val profileManager: ProfileManager,
     private val animateAlphaUseCase: AnimateAlphaUseCase,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
+    private val _effects = MutableSharedFlow<MainActivityEffect>()
+    val effects = _effects.asSharedFlow()
+
+    fun handleIntent(intent: MainActivityIntent) {
+        viewModelScope.launchIO {
+            when (intent) {
+                is MainActivityIntent.ProcessSplash -> processSplash(intent.textView)
+            }
+        }
+    }
 
     /**
      * Поток, содержащий данные профиля пользователя.
      * Используется для наблюдения за изменениями профиля в UI.
      */
-    val profileFlow = profileManager.profileFlow
-
-    /**
-     * Функция для обновления данных профиля.
-     * Вызывает метод обновления профиля в [profileManager].
-     *
-     * @param updating Лямбда-функция, которая принимает текущий объект [Profile] и возвращает обновлённый [Profile].
-     */
-    suspend fun updateProfile(updating: (Profile) -> Profile) {
-        profileManager.updateProfile(updating)
-    }
-
-    /**
-     * Функция для инициализации профиля пользователя.
-     * Вызывает метод инициализации профиля в [profileManager].
-     */
-    suspend fun initProfile() {
+    private val profileFlow = profileManager.profileFlow
+    private suspend fun processSplash(textView: TextView) {
         profileManager.initProfile()
+        val profile = profileFlow.value
+        if (profile.firstName != "undefined" &&
+            profile.lastName != "undefined" &&
+            profile.hash != null
+        ) {
+            withContextMAIN {
+                textView.alpha = 0f
+                textView.text =
+                    "${context.getString(R.string.hello)}, ${profileFlow.value.firstName}!"
+                animateAlphaUseCase.invoke(
+                    view = textView,
+                    duration = 2000,
+                    onEnd = {
+                        viewModelScope.launchIO {
+                            _effects.emit(MainActivityEffect.StartIntent {
+                                AuthActivity.newInstanceSignIN(it)
+                            })
+                            _effects.emit(MainActivityEffect.Finish)
+                        }
+                    },
+                    values = floatArrayOf(
+                        0f,
+                        1f
+                    )
+                )
+            }
+        } else {
+            delay(2000)
+            _effects.emit(MainActivityEffect.StartIntent {
+                Intent(it, SignUpActivity::class.java)
+            })
+            _effects.emit(MainActivityEffect.Finish)
+        }
     }
 
-    /**
-     * Функция для анимации изменения прозрачности (alpha) вида.
-     *
-     * @param view Вид, прозрачность которого будет анимирована.
-     * @param duration Длительность анимации в миллисекундах.
-     * @param onStart Колбэк, который будет вызван перед началом анимации (необязательный).
-     * @param onEnd Колбэк, который будет вызван по завершению анимации (необязательный).
-     * @param onCancel Колбэк, который будет вызван, если анимация была отменена (необязательный).
-     * @param onRepeat Колбэк, который будет вызван при повторении анимации (необязательный).
-     * @param values Массив значений альфа-прозрачности, который будет анимирован.
-     */
-    fun animateAlpha(
-        view: View,
-        duration: Long,
-        onStart: (() -> Unit)? = null,
-        onEnd: (() -> Unit)? = null,
-        onCancel: (() -> Unit)? = null,
-        onRepeat: (() -> Unit)? = null,
-        values: FloatArray,
-    ) = animateAlphaUseCase.invoke(view, duration, onStart, onEnd, onCancel, onRepeat, values)
 }

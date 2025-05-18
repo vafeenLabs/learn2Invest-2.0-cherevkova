@@ -1,18 +1,19 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.profile
 
-import android.content.Context
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.cryptography.FingerprintAuthenticator
 import ru.surf.learn2invest.domain.database.usecase.ClearAppDatabaseUseCase
 import ru.surf.learn2invest.domain.domain_models.Profile
 import ru.surf.learn2invest.domain.services.ProfileManager
 import ru.surf.learn2invest.domain.utils.launchIO
-import ru.surf.learn2invest.presentation.R
-import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.SignInActivity
-import ru.surf.learn2invest.presentation.ui.components.screens.trading_password.TradingPasswordActivity
 import javax.inject.Inject
 
 /**
@@ -29,11 +30,52 @@ import javax.inject.Inject
 internal class ProfileFragmentViewModel @Inject constructor(
     private val profileManager: ProfileManager,
     private val clearAppDatabaseUseCase: ClearAppDatabaseUseCase,
-    private val fingerprintAuthenticator: FingerprintAuthenticator,
+    val fingerprintAuthenticator: FingerprintAuthenticator,
 ) : ViewModel() {
 
     // Поток данных профиля
-    val profileFlow = profileManager.profileFlow
+    private val profileFlow = profileManager.profileFlow
+
+    // состояние экрана
+    private val _state = MutableStateFlow(
+        ProfileFragmentState(
+            firstName = "",
+            lastName = "",
+            tradingPasswordHash = "",
+            biometry = false,
+        )
+    )
+    val state = _state.asStateFlow()
+    private val _effects = MutableSharedFlow<ProfileFragmentEffect>()
+    val effects = _effects.asSharedFlow()
+    fun handleIntent(intent: ProfileFragmentIntent) {
+        viewModelScope.launchIO {
+            when (intent) {
+                is ProfileFragmentIntent.IsBiometricAvailable -> isBiometricAvailable()
+                is ProfileFragmentIntent.BiometryBtnSwitch -> biometryBtnSwitch()
+                ProfileFragmentIntent.ShowDeleteProfileDialogEffect -> showDeleteProfileDialog()
+                ProfileFragmentIntent.ShowResetStatsDialogEffect -> showResetStatsDialog()
+                ProfileFragmentIntent.ChangeTradingPassword -> changeTradingPassword()
+                ProfileFragmentIntent.ChangeTransactionConfirmation -> changeTransactionConfirmation()
+                ProfileFragmentIntent.ChangePIN -> changePIN()
+            }
+        }
+    }
+
+    init {
+        viewModelScope.launchIO {
+            profileFlow.collectLatest { profile ->
+                _state.update {
+                    it.copy(
+                        firstName = profile.firstName,
+                        lastName = profile.lastName,
+                        tradingPasswordHash = profile.tradingPasswordHash,
+                        biometry = profile.biometry,
+                    )
+                }
+            }
+        }
+    }
 
     /**
      * Обновляет профиль пользователя с помощью переданной функции.
@@ -47,30 +89,20 @@ internal class ProfileFragmentViewModel @Inject constructor(
 
     /**
      * Изменяет настройку подтверждения транзакции, в зависимости от наличия пароля для торговли.
-     *
-     * @param activity Контекст для запуска активности.
      */
-    fun changeTransactionConfirmation(activity: AppCompatActivity) = activity.startActivity(
-        if (profileFlow.value.tradingPasswordHash == null) TradingPasswordActivity.newInstanceCreateTP(
-            activity
-        ) else TradingPasswordActivity.newInstanceRemoveTP(activity)
-    )
+    private suspend fun changeTransactionConfirmation() {
+        _effects.emit(
+            if (profileFlow.value.tradingPasswordHash == null)
+                ProfileFragmentEffect.TradingPasswordActivityCreateTP
+            else ProfileFragmentEffect.TradingPasswordActivityRemoveTP
+        )
+    }
 
-    /**
-     * Запускает активность для изменения пароля для торговли.
-     *
-     * @param activity Контекст для запуска активности.
-     */
-    fun changeTradingPassword(activity: AppCompatActivity) = activity.startActivity(
-        TradingPasswordActivity.newInstanceChangeTP(activity)
-    )
 
     /**
      * Переключает настройку биометрической аутентификации для пользователя.
-     *
-     * @param activity Активность, из которой будет вызвана биометрическая аутентификация.
      */
-    fun biometryBtnSwitch(activity: AppCompatActivity) {
+    private suspend fun biometryBtnSwitch() {
         val profile = profileFlow.value
         if (profile.biometry) {
             viewModelScope.launchIO {
@@ -79,32 +111,39 @@ internal class ProfileFragmentViewModel @Inject constructor(
                 }
             }
         } else {
-            fingerprintAuthenticator.setSuccessCallback {
+            _effects.emit(ProfileFragmentEffect.FingerPrintBottomSheet(onSuccess = {
                 viewModelScope.launchIO {
                     updateProfile { profile.copy(biometry = true) }
                 }
-            }.setDesignBottomSheet(
-                title = activity.getString(R.string.biometry),
-                cancelText = activity.getString(R.string.cancel),
-            ).auth(coroutineScope = viewModelScope, activity = activity)
+            }))
         }
     }
 
     /**
      * Запускает активность для изменения PIN-кода.
-     *
-     * @param context Контекст для запуска активности.
      */
-    fun changePIN(context: Context) {
-        context.startActivity(SignInActivity.newInstanceChangingPIN(context as AppCompatActivity))
-    }
+    private suspend fun changePIN() = _effects.emit(ProfileFragmentEffect.SignInActivityChangingPIN)
 
     /**
      * Проверяет, доступна ли биометрическая аутентификация на устройстве.
-     *
-     * @param activity Активность, в контексте которой будет проверяться доступность биометрии.
+
      * @return true, если биометрическая аутентификация доступна, иначе false.
      */
-    fun isBiometricAvailable(activity: AppCompatActivity): Boolean =
-        fingerprintAuthenticator.isBiometricAvailable(activity)
+    private fun isBiometricAvailable() {
+        _state.update { it ->
+            it.copy(isBiometryAvailable = fingerprintAuthenticator.isBiometricAvailable())
+        }
+    }
+
+    private suspend fun showDeleteProfileDialog() =
+        _effects.emit(ProfileFragmentEffect.ShowDeleteProfileDialogEffect)
+
+
+    private suspend fun showResetStatsDialog() =
+        _effects.emit(ProfileFragmentEffect.ShowResetStatsDialogEffect)
+
+
+    private suspend fun changeTradingPassword() =
+        _effects.emit(ProfileFragmentEffect.TradingPasswordActivityChangeTP)
+
 }

@@ -1,6 +1,6 @@
 package ru.surf.learn2invest.domain.cryptography.usecase
 
-import ru.surf.learn2invest.domain.domain_models.Profile
+import ru.surf.learn2invest.domain.services.ProfileManager
 import javax.inject.Inject
 
 /**
@@ -13,18 +13,17 @@ class IsTrueTradingPasswordOrIsNotDefinedUseCase @Inject constructor(
     /**
      * Юз-кейс для проверки пароля торговли.
      */
-    private val verifyTradingPasswordUseCase: VerifyTradingPasswordUseCase
+    private val verifyTradingPasswordUseCase: VerifyTradingPasswordUseCase,
+    private val profileManager: ProfileManager,
 ) {
 
     /**
      * Проверяет, является ли введённый пароль торговли верным или не определённым.
-     *
-     * @param profile     Профиль пользователя, содержащий хэш пароля торговли.
      * @param password    Пароль торговли для проверки.
      * @return True, если пароль верный или не определён (хэш отсутствует), иначе false.
      */
-    operator fun invoke(profile: Profile, password: String): Boolean =
-        if (profile.tradingPasswordHash != null) {
-            verifyTradingPasswordUseCase.invoke(user = profile, tradingPassword = password)
+    operator fun invoke(password: String): Boolean =
+        if (profileManager.profileFlow.value.tradingPasswordHash != null) {
+            verifyTradingPasswordUseCase.invoke(tradingPassword = password)
         } else true
 }

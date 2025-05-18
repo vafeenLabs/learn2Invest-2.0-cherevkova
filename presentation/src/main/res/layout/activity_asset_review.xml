@@ -56,7 +56,7 @@
     </LinearLayout>
 
     <Button
-        android:id="@+id/asset_review_btn"
+        android:id="@+id/asset_overview_btn"
         style="@style/Text.Medium.16"
         android:layout_width="150dp"
         android:layout_height="wrap_content"
@@ -75,8 +75,8 @@
         android:layout_width="10dp"
         android:layout_height="10dp"
         app:layout_constraintEnd_toStartOf="@id/asset_history_btn"
-        app:layout_constraintStart_toEndOf="@id/asset_review_btn"
-        app:layout_constraintTop_toTopOf="@id/asset_review_btn" />
+        app:layout_constraintStart_toEndOf="@id/asset_overview_btn"
+        app:layout_constraintTop_toTopOf="@id/asset_overview_btn" />
 
     <Button
         android:id="@+id/asset_history_btn"
@@ -100,7 +100,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/asset_review_btn"
+        app:layout_constraintTop_toBottomOf="@id/asset_overview_btn"
         app:layout_constraintVertical_chainStyle="spread" />
 
 

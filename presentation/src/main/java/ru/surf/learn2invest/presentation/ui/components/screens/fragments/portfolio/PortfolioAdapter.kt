@@ -6,19 +6,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import dagger.hilt.android.qualifiers.ActivityContext
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.qualifiers.ApplicationContext
 import ru.surf.learn2invest.domain.domain_models.AssetInvest
 import ru.surf.learn2invest.domain.services.coin_icon_loader.usecase.LoadCoinIconUseCase
 import ru.surf.learn2invest.presentation.R
-import ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_review.AssetReviewActivity
 import ru.surf.learn2invest.presentation.ui.components.screens.fragments.common.MapDiffCallback
 import ru.surf.learn2invest.presentation.utils.getWithCurrency
 import ru.surf.learn2invest.presentation.utils.getWithPCS
 import ru.surf.learn2invest.presentation.utils.round
-import javax.inject.Inject
 
 
 /**
@@ -27,9 +27,10 @@ import javax.inject.Inject
  * @param loadCoinIconUseCase Используется для загрузки иконки монеты.
  * @param context Контекст, необходим для старта активностей.
  */
-internal class PortfolioAdapter @Inject constructor(
+internal class PortfolioAdapter @AssistedInject constructor(
     private val loadCoinIconUseCase: LoadCoinIconUseCase,
-    @ActivityContext var context: Context,
+    @ApplicationContext private val context: Context,
+    @Assisted private val startActivity: (id: String, name: String, symbol: String) -> Unit
 ) : RecyclerView.Adapter<PortfolioAdapter.PortfolioViewHolder>() {
 
     /**
@@ -81,14 +82,7 @@ internal class PortfolioAdapter @Inject constructor(
         holder.bind(asset, priceChanges[asset.symbol] ?: 0f) // Привязываем данные к элементу
         holder.itemView.setOnClickListener {
             // При клике на элемент открываем экран с подробностями актива
-            context.startActivity(
-                AssetReviewActivity.newIntent(
-                    context as AppCompatActivity,
-                    asset.assetID,
-                    asset.name,
-                    asset.symbol
-                )
-            )
+            startActivity(asset.assetID, asset.name, asset.symbol)
         }
     }
 
@@ -110,7 +104,8 @@ internal class PortfolioAdapter @Inject constructor(
         private val coinName: TextView = itemView.findViewById(R.id.coin_name)
         private val coinQuantity: TextView = itemView.findViewById(R.id.coin_symbol)
         private val coinTopNumericInfo: TextView = itemView.findViewById(R.id.coin_top_numeric_info)
-        private val coinBottomNumericInfo: TextView = itemView.findViewById(R.id.coin_bottom_numeric_info)
+        private val coinBottomNumericInfo: TextView =
+            itemView.findViewById(R.id.coin_bottom_numeric_info)
 
         /**
          * Привязывает данные активов к UI-элементам.
@@ -120,9 +115,11 @@ internal class PortfolioAdapter @Inject constructor(
          */
         fun bind(asset: AssetInvest, priceChange: Float) {
             coinName.text = asset.name // Устанавливаем название актива
-            coinQuantity.text = "${asset.amount}".getWithPCS(context) // Устанавливаем количество актива
+            coinQuantity.text =
+                "${asset.amount}".getWithPCS(context) // Устанавливаем количество актива
             coinTopNumericInfo.text = priceChange.getWithCurrency() // Устанавливаем цену
-            val priceChangePercent = ((priceChange - asset.coinPrice) / asset.coinPrice) * 100 // Рассчитываем изменение цены в процентах
+            val priceChangePercent =
+                ((priceChange - asset.coinPrice) / asset.coinPrice) * 100 // Рассчитываем изменение цены в процентах
             val roundedPercent = priceChangePercent.round() // Округляем процентное изменение
             coinBottomNumericInfo.setTextColor(
                 when {
@@ -144,5 +141,10 @@ internal class PortfolioAdapter @Inject constructor(
             )
             loadCoinIconUseCase.invoke(coinIcon, asset.symbol) // Загружаем иконку актива
         }
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(startActivity: (id: String, name: String, symbol: String) -> Unit): PortfolioAdapter
     }
 }

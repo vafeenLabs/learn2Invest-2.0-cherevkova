@@ -1,6 +1,5 @@
 package ru.surf.learn2invest.presentation.ui.components.alert_dialogs.buy_dialog
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -8,7 +7,9 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -23,7 +24,7 @@ import ru.surf.learn2invest.domain.domain_models.Transaction
 import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinReviewUseCase
 import ru.surf.learn2invest.domain.services.ProfileManager
-import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.BuySellDialogState
+import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.LotsData
 
 /**
@@ -56,12 +57,14 @@ internal class BuyDialogViewModel @AssistedInject constructor(
      * Задача для обновления цены актива в реальном времени
      */
     private var realTimeUpdateJob: Job? = null
+    private val _effects = MutableSharedFlow<BuyDialogEffect>()
+    val effects = _effects.asSharedFlow()
 
     /**
      * Комбинированный StateFlow, содержащий актуальное состояние покупки
      */
     private val _state = MutableStateFlow(
-        BuySellDialogState(
+        BuyDialogState(
             coin = AssetInvest(
                 name = name,
                 symbol = symbol,
@@ -72,15 +75,36 @@ internal class BuyDialogViewModel @AssistedInject constructor(
             profile = profile.value
         )
     )
-    val stateFlow = _state.asStateFlow()
+    val state = _state.asStateFlow()
+    fun handleEvent(intent: BuyDialogIntent) {
+        viewModelScope.launchIO {
+            when (intent) {
+                BuyDialogIntent.Buy -> {
+                    buy()
+                    _effects.emit(BuyDialogEffect.Dismiss)
+                }
+
+                BuyDialogIntent.MinusLot -> minusLot()
+                BuyDialogIntent.PlusLot -> plusLot()
+                is BuyDialogIntent.SetLot -> setLot(intent.lots)
+                is BuyDialogIntent.SetTradingPassword -> setTradingPassword(intent.password)
+                BuyDialogIntent.SetupAssetIfInDbAndStartUpdatingPriceFLow -> {
+                    setAssetIfInDB()
+                    startUpdatingPriceFLow()
+                }
+
+                BuyDialogIntent.StopUpdatingPriceFLow -> stopUpdatingPriceFlow()
+            }
+        }
+    }
 
     /**
      * Запускает обновление цены актива в реальном времени с интервалом 5 секунд
      */
-    fun startUpdatingPriceFLow() {
+    private fun startUpdatingPriceFLow() {
         realTimeUpdateJob = viewModelScope.launch {
             while (true) {
-                when (val result = getCoinReviewUseCase.invoke(stateFlow.value.coin.assetID)) {
+                when (val result = getCoinReviewUseCase.invoke(state.value.coin.assetID)) {
                     is ResponseResult.Success -> {
                         _state.update {
                             it.copy(currentPrice = result.value.priceUsd)
@@ -97,7 +121,7 @@ internal class BuyDialogViewModel @AssistedInject constructor(
     /**
      * Проверяет, есть ли актив в базе данных, и устанавливает его, если найден
      */
-    suspend fun setAssetIfInDB() {
+    private suspend fun setAssetIfInDB() {
         getBySymbolAssetInvestUseCase.invoke(symbol = symbol).first()?.let { asset ->
             _state.update {
                 it.copy(coin = asset)
@@ -108,7 +132,7 @@ internal class BuyDialogViewModel @AssistedInject constructor(
     /**
      * Останавливает обновление цены актива
      */
-    fun stopUpdatingPriceFlow() {
+    private fun stopUpdatingPriceFlow() {
         realTimeUpdateJob?.cancel()
         realTimeUpdateJob = null
     }
@@ -117,14 +141,14 @@ internal class BuyDialogViewModel @AssistedInject constructor(
      * Устанавливает торговый пароль
      * @param password Введенный пользователем торговый пароль
      */
-    fun setTradingPassword(password: String) {
+    private fun setTradingPassword(password: String) {
         _state.update { it.copy(tradingPassword = password) }
     }
 
     /**
      * Увеличивает количество лотов на 1
      */
-    fun plusLot() {
+    private fun plusLot() {
         _state.update {
             it.copy(lotsData = LotsData(it.lotsData.lots + 1))
         }
@@ -133,7 +157,7 @@ internal class BuyDialogViewModel @AssistedInject constructor(
     /**
      * Уменьшает количество лотов на 1, если их больше 0
      */
-    fun minusLot() {
+    private fun minusLot() {
         if (_state.value.lotsData.lots > 0)
             _state.update {
                 it.copy(lotsData = LotsData(it.lotsData.lots - 1))
@@ -144,7 +168,7 @@ internal class BuyDialogViewModel @AssistedInject constructor(
      * Устанавливает конкретное количество лотов
      * @param lotsNumber Количество лотов
      */
-    fun setLot(lotsNumber: Int) {
+    private fun setLot(lotsNumber: Int) {
         _state.update {
             it.copy(lotsData = LotsData(lots = lotsNumber, isUpdateTVNeeded = false))
         }
@@ -153,12 +177,11 @@ internal class BuyDialogViewModel @AssistedInject constructor(
     /**
      * Покупает актив, обновляя баланс пользователя и добавляя транзакцию
      */
-    suspend fun buy() {
+    private suspend fun buy() {
         val state = _state.value
         val coin = state.coin
         val price = state.currentPrice ?: return
         val amountCurrent = state.lotsData.lots
-        Log.d("hello", "$coin $price $amountCurrent")
         val balance = profileManager.profileFlow.value.fiatBalance
         if (balance != 0f && balance > price * amountCurrent) {
             // Обновление баланса

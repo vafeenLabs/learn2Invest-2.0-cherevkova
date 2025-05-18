@@ -10,14 +10,12 @@ internal class SearchedCoinConverter @Inject constructor() :
 
     override fun convertAB(a: SearchedCoinEntity): SearchedCoin {
         return SearchedCoin(
-            id = a.id,
             coinID = a.coinID,
         )
     }
 
     override fun convertBA(b: SearchedCoin): SearchedCoinEntity {
         return SearchedCoinEntity(
-            id = b.id,
             coinID = b.coinID,
         )
     }
