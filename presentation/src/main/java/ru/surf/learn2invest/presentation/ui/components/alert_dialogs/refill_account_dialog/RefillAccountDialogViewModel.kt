@@ -8,22 +8,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import javax.inject.Inject
 
 /**
  * ViewModel для управления логикой пополнения баланса.
  *
- * @property profileManager Менеджер профиля, используемый для обновления данных пользователя.
+ * @property settingsManager Менеджер профиля, используемый для обновления данных пользователя.
  */
 @HiltViewModel
 internal class RefillAccountDialogViewModel @Inject constructor(
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
 ) : ViewModel() {
 
     /** Поток данных профиля пользователя. */
-    private val profileFlow = profileManager.profileFlow
+    private val profileFlow = settingsManager.settingsFlow
     private val _state =
         MutableStateFlow(RefillAccountDialogState(balance = profileFlow.value.fiatBalance))
     val state = _state.asStateFlow()
@@ -82,7 +82,7 @@ internal class RefillAccountDialogViewModel @Inject constructor(
     private suspend fun refill(): Boolean {
         val enteredBalance = _state.value.enteredBalance.toFloatOrNull()
         return if (enteredBalance != null && enteredBalance > 0) {
-            profileManager.updateProfile {
+            settingsManager.update {
                 it.copy(fiatBalance = it.fiatBalance + enteredBalance)
             }
             _effects.emit(RefillAccountDialogEffect.Dismiss)

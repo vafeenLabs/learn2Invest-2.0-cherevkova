@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.cryptography.FingerprintAuthenticator
 import ru.surf.learn2invest.domain.database.usecase.ClearAppDatabaseUseCase
-import ru.surf.learn2invest.domain.domain_models.Profile
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.domain_models.Settings
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import javax.inject.Inject
 
@@ -21,20 +21,20 @@ import javax.inject.Inject
  * Отвечает за обновление профиля, смену пароля для торговли, работу с биометрической аутентификацией,
  * сброс статистики и другие операции, связанные с профилем пользователя.
  *
- * @param profileManager Менеджер профиля пользователя, который предоставляет доступ к данным
+ * @param settingsManager Менеджер профиля пользователя, который предоставляет доступ к данным
  *                       профиля и позволяет обновлять их.
  * @param clearAppDatabaseUseCase UseCase для очистки базы данных приложения.
  * @param fingerprintAuthenticator Аутентификатор для работы с биометрией пользователя.
  */
 @HiltViewModel
 internal class ProfileFragmentViewModel @Inject constructor(
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
     private val clearAppDatabaseUseCase: ClearAppDatabaseUseCase,
     val fingerprintAuthenticator: FingerprintAuthenticator,
 ) : ViewModel() {
 
     // Поток данных профиля
-    private val profileFlow = profileManager.profileFlow
+    private val profileFlow = settingsManager.settingsFlow
 
     // состояние экрана
     private val _state = MutableStateFlow(
@@ -82,8 +82,8 @@ internal class ProfileFragmentViewModel @Inject constructor(
      *
      * @param updating Функция для обновления данных профиля.
      */
-    suspend fun updateProfile(updating: (Profile) -> Profile) {
-        profileManager.updateProfile(updating)
+    suspend fun updateProfile(updating: (Settings) -> Settings) {
+        settingsManager.update(updating)
     }
 
 

@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.animator.usecase.AnimateDotsUseCase
 import ru.surf.learn2invest.domain.cryptography.usecase.UpdatePinUseCase
 import ru.surf.learn2invest.domain.cryptography.usecase.VerifyPINUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.common.AuthActivityEffect
@@ -33,10 +33,10 @@ internal class AuthChangingPinActivityViewModel @Inject constructor(
     private val animateDotsUseCase: AnimateDotsUseCase,
     private val updatePinUseCase: UpdatePinUseCase,
     verifyPINUseCase: VerifyPINUseCase,
-    profileManager: ProfileManager,
+    settingsManager: SettingsManager,
 ) : AuthActivityViewModel(
     initialState = AuthActivityState(mainText = context.getString(R.string.enter_old_pin)),
-    profileManager = profileManager,
+    settingsManager = settingsManager,
     verifyPINUseCase = verifyPINUseCase
 ) {
     private var isVerified = false

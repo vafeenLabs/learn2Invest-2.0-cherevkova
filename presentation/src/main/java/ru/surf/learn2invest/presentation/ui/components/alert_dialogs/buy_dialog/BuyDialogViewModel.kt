@@ -23,14 +23,14 @@ import ru.surf.learn2invest.domain.domain_models.AssetInvest
 import ru.surf.learn2invest.domain.domain_models.Transaction
 import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinReviewUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.LotsData
 
 /**
  * ViewModel для диалогового окна покупки криптовалюты.
  * Отвечает за получение текущей цены актива, управление балансом и добавление транзакций.
- * @property profileManager Менеджер профиля пользователя
+ * @property settingsManager Менеджер профиля пользователя
  * @property insertTransactionUseCase UseCase для добавления транзакции
  * @property insertAssetInvestUseCase UseCase для обновления данных об инвестициях в актив
  * @property getCoinReviewUseCase UseCase для получения текущей цены актива
@@ -41,7 +41,7 @@ import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.Lots
  * @property symbol Символ актива (тикер)
  */
 internal class BuyDialogViewModel @AssistedInject constructor(
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
     private val insertTransactionUseCase: InsertTransactionUseCase,
     private val insertAssetInvestUseCase: InsertAssetInvestUseCase,
     private val getCoinReviewUseCase: GetCoinReviewUseCase,
@@ -51,7 +51,7 @@ internal class BuyDialogViewModel @AssistedInject constructor(
     @Assisted("name") val name: String,
     @Assisted("symbol") val symbol: String,
 ) : ViewModel() {
-    private val profile = profileManager.profileFlow
+    private val profile = settingsManager.settingsFlow
 
     /**
      * Задача для обновления цены актива в реальном времени
@@ -72,7 +72,7 @@ internal class BuyDialogViewModel @AssistedInject constructor(
                 amount = 0,
                 assetID = id
             ),
-            profile = profile.value
+            settings = profile.value
         )
     )
     val state = _state.asStateFlow()
@@ -182,10 +182,10 @@ internal class BuyDialogViewModel @AssistedInject constructor(
         val coin = state.coin
         val price = state.currentPrice ?: return
         val amountCurrent = state.lotsData.lots
-        val balance = profileManager.profileFlow.value.fiatBalance
+        val balance = settingsManager.settingsFlow.value.fiatBalance
         if (balance != 0f && balance > price * amountCurrent) {
             // Обновление баланса
-            profileManager.updateProfile {
+            settingsManager.update {
                 it.copy(fiatBalance = balance - price * amountCurrent)
             }
             // Обновление портфеля

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.cryptography.usecase.VerifyPINUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 
 /**
@@ -16,15 +16,15 @@ import ru.surf.learn2invest.domain.utils.launchIO
  *
  * @param initialState Начальное состояние экрана.
  * @param verifyPINUseCase UseCase для проверки корректности PIN-кода.
- * @param profileManager Менеджер профиля пользователя.
+ * @param settingsManager Менеджер профиля пользователя.
  */
 internal abstract class AuthActivityViewModel(
     initialState: AuthActivityState,
     protected val verifyPINUseCase: VerifyPINUseCase,
-    protected val profileManager: ProfileManager,
+    protected val settingsManager: SettingsManager,
 ) : ViewModel() {
     /** Поток данных профиля пользователя */
-    protected val profileFlow = profileManager.profileFlow
+    protected val profileFlow = settingsManager.settingsFlow
 
     /** Состояние экрана аутентификации */
     protected val _state = MutableStateFlow(initialState)

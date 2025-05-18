@@ -1,7 +1,7 @@
 package ru.surf.learn2invest.domain.cryptography.usecase
 
 import ru.surf.learn2invest.domain.cryptography.PasswordHasher
-import ru.surf.learn2invest.domain.domain_models.Profile
+import ru.surf.learn2invest.domain.domain_models.Settings
 import javax.inject.Inject
 
 /**
@@ -23,7 +23,7 @@ class GetHashedPasswordUseCase @Inject constructor(
      * @param password  Пароль, который необходимо хэшировать.
      * @return Хэшированный пароль.
      */
-    operator fun invoke(user: Profile, password: String) = passwordHasher.passwordToHash(
+    operator fun invoke(user: Settings, password: String) = passwordHasher.passwordToHash(
         firstName = user.firstName,
         lastName = user.lastName,
         password = password

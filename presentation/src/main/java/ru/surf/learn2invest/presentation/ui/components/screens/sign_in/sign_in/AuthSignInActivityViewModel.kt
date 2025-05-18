@@ -8,7 +8,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import ru.surf.learn2invest.domain.animator.usecase.AnimateDotsUseCase
 import ru.surf.learn2invest.domain.cryptography.usecase.VerifyPINUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.common.AuthActivityEffect
@@ -28,12 +28,12 @@ import javax.inject.Inject
 @HiltViewModel
 internal class AuthSignInActivityViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    profileManager: ProfileManager,
+    settingsManager: SettingsManager,
     verifyPINUseCase: VerifyPINUseCase,
     private val animateDotsUseCase: AnimateDotsUseCase,
 ) : AuthActivityViewModel(
     initialState = AuthActivityState(mainText = context.getString(R.string.enter_pin_str)),
-    profileManager = profileManager,
+    settingsManager = settingsManager,
     verifyPINUseCase = verifyPINUseCase
 ) {
     /**

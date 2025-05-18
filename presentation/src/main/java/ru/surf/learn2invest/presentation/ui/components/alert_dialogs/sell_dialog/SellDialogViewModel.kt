@@ -23,7 +23,7 @@ import ru.surf.learn2invest.domain.domain_models.AssetInvest
 import ru.surf.learn2invest.domain.domain_models.Transaction
 import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinReviewUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.LotsData
 
@@ -34,7 +34,7 @@ import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.Lots
  * Этот ViewModel отвечает за управление состоянием продажи актива, включая цену, количество лотов и торговый пароль.
  * Он также управляет обновлением данных актива и выполнением операций продажи.
  *
- * @param profileManager Менеджер профиля пользователя.
+ * @param settingsManager Менеджер профиля пользователя.
  * @param insertTransactionUseCase UseCase для добавления транзакции.
  * @param insertAssetInvestUseCase UseCase для добавление актива.
  * @param deleteAssetInvestUseCase UseCase для удаления активов из инвестиций.
@@ -46,7 +46,7 @@ import ru.surf.learn2invest.presentation.ui.components.alert_dialogs.common.Lots
  * @param symbol Символ актива.
  */
 internal class SellDialogViewModel @AssistedInject constructor(
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
     private val insertTransactionUseCase: InsertTransactionUseCase,
     private val insertAssetInvestUseCase: InsertAssetInvestUseCase,
     private val deleteAssetInvestUseCase: DeleteAssetInvestUseCase,
@@ -57,7 +57,7 @@ internal class SellDialogViewModel @AssistedInject constructor(
     @Assisted("name") val name: String,
     @Assisted("symbol") val symbol: String,
 ) : ViewModel() {
-    private val profile = profileManager.profileFlow
+    private val profile = settingsManager.settingsFlow
 
     /**
      * Задержка для обновления реальной цены актива.
@@ -74,7 +74,7 @@ internal class SellDialogViewModel @AssistedInject constructor(
         SellDialogState(
             coin = AssetInvest(
                 name = name, symbol = symbol, coinPrice = 0f, amount = 0, assetID = id
-            ), profile = profile.value
+            ), settings = profile.value
         )
     )
     val stateFlow = _state.asStateFlow()
@@ -158,7 +158,7 @@ internal class SellDialogViewModel @AssistedInject constructor(
         val coin = state.coin
         val amountCurrent = state.lotsData.lots
         val price = state.currentPrice as Float
-        profileManager.updateProfile {
+        settingsManager.update {
             it.copy(fiatBalance = it.fiatBalance + price * amountCurrent)
         }
 

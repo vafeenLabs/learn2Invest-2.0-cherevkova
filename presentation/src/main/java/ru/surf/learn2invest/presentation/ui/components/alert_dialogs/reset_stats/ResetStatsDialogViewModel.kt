@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import ru.surf.learn2invest.domain.database.usecase.ClearAppDatabaseUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.domain.utils.withContextIO
 import ru.surf.learn2invest.presentation.R
@@ -22,12 +22,12 @@ import javax.inject.Inject
  * Этот ViewModel управляет логикой сброса статистики пользователя, включая обнуление баланса
  * и очистку базы данных приложения.
  *
- * @param profileManager Менеджер профиля, используемый для управления профилем пользователя.
+ * @param settingsManager Менеджер профиля, используемый для управления профилем пользователя.
  * @param clearAppDatabaseUseCase Используется для очистки базы данных приложения.
  */
 @HiltViewModel
 internal class ResetStatsDialogViewModel @Inject constructor(
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
     private val clearAppDatabaseUseCase: ClearAppDatabaseUseCase,
     @ApplicationContext val context: Context
 ) : ViewModel() {
@@ -66,7 +66,7 @@ internal class ResetStatsDialogViewModel @Inject constructor(
      */
     private suspend fun resetStats() {
         // Создаем копию текущего профиля с обнулением балансов
-        val savedProfile = profileManager.profileFlow.value.copy(
+        val savedProfile = settingsManager.settingsFlow.value.copy(
             fiatBalance = 0f,
             assetBalance = 0f
         )
@@ -74,7 +74,7 @@ internal class ResetStatsDialogViewModel @Inject constructor(
         // Обработка сброса данных в фоновом потоке
         withContextIO {
             clearAppDatabaseUseCase() // Очищаем базу данных
-            profileManager.updateProfile {
+            settingsManager.update {
                 savedProfile // Обновляем профиль
             }
         }

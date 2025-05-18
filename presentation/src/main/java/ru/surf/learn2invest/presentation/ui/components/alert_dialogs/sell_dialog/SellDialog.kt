@@ -107,8 +107,8 @@ internal class SellDialog : CustomBottomSheetDialog() {
                 viewModel.stateFlow.collectLatest { state ->
                     val lotsData = state.lotsData
                     tradingPassword.isVisible =
-                        state.profile.tradingPasswordHash != null && state.coin.amount > 0
-                    balanceNum.text = state.profile.fiatBalance.getWithCurrency()
+                        state.settings.tradingPasswordHash != null && state.coin.amount > 0
+                    balanceNum.text = state.settings.fiatBalance.getWithCurrency()
                     val resultPrice = state.currentPrice?.let { it * state.lotsData.lots }
                     when {
                         state.coin.amount == 0 -> {

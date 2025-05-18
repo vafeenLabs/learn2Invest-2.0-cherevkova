@@ -1,9 +1,9 @@
-package ru.surf.learn2invest.domain.domain_models
+package ru.surf.learn2invest.data.services.settings_manager
 
+import kotlinx.serialization.Serializable
 
 /**
  * Профиль пользователя со всеми настройками
- * @param id [Первичный ключ в базе данных]
  * @param firstName [Имя ]
  * @param lastName [Фамилия ]
  * @param biometry  [Вкл/Выкл входа по биометрии]
@@ -12,15 +12,13 @@ package ru.surf.learn2invest.domain.domain_models
  * @param hash   [Хэш PIN-кода]
  * @param tradingPasswordHash   [Хэш Торгового пароля]
  */
-
-data class Profile(
-    var id: Int = 0,
-    val firstName: String,
-    val lastName: String,
-    val biometry: Boolean,
-    val fiatBalance: Float,
-    val assetBalance: Float,
+@Serializable
+internal data class SettingsSerializable(
+    val firstName: String = "",
+    val lastName: String = "",
+    val biometry: Boolean = false,
+    val fiatBalance: Float = 0f,
+    val assetBalance: Float = 0f,
     val hash: String? = null,
     val tradingPasswordHash: String? = null
 )
-

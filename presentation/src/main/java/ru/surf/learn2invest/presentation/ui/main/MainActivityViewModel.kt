@@ -11,7 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import ru.surf.learn2invest.domain.animator.usecase.AnimateAlphaUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.domain.utils.withContextMAIN
 import ru.surf.learn2invest.presentation.R
@@ -22,12 +22,12 @@ import javax.inject.Inject
 /**
  * ViewModel для экрана главной активности. Управляет данными профиля пользователя и анимациями.
  *
- * @param profileManager Менеджер профиля, предоставляющий данные профиля и возможности для обновления профиля.
+ * @param settingsManager Менеджер профиля, предоставляющий данные профиля и возможности для обновления профиля.
  * @param animateAlphaUseCase Используется для анимации изменения прозрачности (alpha) у вида.
  */
 @HiltViewModel
 internal class MainActivityViewModel @Inject constructor(
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
     private val animateAlphaUseCase: AnimateAlphaUseCase,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -46,9 +46,8 @@ internal class MainActivityViewModel @Inject constructor(
      * Поток, содержащий данные профиля пользователя.
      * Используется для наблюдения за изменениями профиля в UI.
      */
-    private val profileFlow = profileManager.profileFlow
+    private val profileFlow = settingsManager.settingsFlow
     private suspend fun processSplash(textView: TextView) {
-        profileManager.initProfile()
         val profile = profileFlow.value
         if (profile.firstName != "undefined" &&
             profile.lastName != "undefined" &&

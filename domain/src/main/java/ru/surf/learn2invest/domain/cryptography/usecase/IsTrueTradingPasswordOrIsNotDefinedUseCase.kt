@@ -1,6 +1,6 @@
 package ru.surf.learn2invest.domain.cryptography.usecase
 
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import javax.inject.Inject
 
 /**
@@ -14,7 +14,7 @@ class IsTrueTradingPasswordOrIsNotDefinedUseCase @Inject constructor(
      * Юз-кейс для проверки пароля торговли.
      */
     private val verifyTradingPasswordUseCase: VerifyTradingPasswordUseCase,
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager
 ) {
 
     /**
@@ -23,7 +23,7 @@ class IsTrueTradingPasswordOrIsNotDefinedUseCase @Inject constructor(
      * @return True, если пароль верный или не определён (хэш отсутствует), иначе false.
      */
     operator fun invoke(password: String): Boolean =
-        if (profileManager.profileFlow.value.tradingPasswordHash != null) {
+        if (settingsManager.settingsFlow.value.tradingPasswordHash != null) {
             verifyTradingPasswordUseCase.invoke(tradingPassword = password)
         } else true
 }

@@ -10,7 +10,7 @@ import ru.surf.learn2invest.domain.animator.usecase.AnimateDotsUseCase
 import ru.surf.learn2invest.domain.cryptography.FingerprintAuthenticator
 import ru.surf.learn2invest.domain.cryptography.usecase.UpdatePinUseCase
 import ru.surf.learn2invest.domain.cryptography.usecase.VerifyPINUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.presentation.R
 import ru.surf.learn2invest.presentation.ui.components.screens.sign_in.common.AuthActivityEffect
@@ -36,10 +36,10 @@ internal class AuthSignUpActivityViewModel @Inject constructor(
     private val animateDotsUseCase: AnimateDotsUseCase,
     private val fingerprintAuthenticator: FingerprintAuthenticator,
     verifyPINUseCase: VerifyPINUseCase,
-    profileManager: ProfileManager,
+    settingsManager: SettingsManager,
 ) : AuthActivityViewModel(
     initialState = AuthActivityState(mainText = context.getString(R.string.change_PIN)),
-    profileManager = profileManager,
+    settingsManager = settingsManager,
     verifyPINUseCase = verifyPINUseCase
 ) {
     private var firstPin = ""
@@ -86,7 +86,7 @@ internal class AuthSignUpActivityViewModel @Inject constructor(
                                         AuthActivityEffect.FingerPrintBottomSheet(
                                             onSuccess = {
                                                 viewModelScope.launchIO {
-                                                    profileManager.updateProfile {
+                                                    settingsManager.update {
                                                         it.copy(biometry = true)
                                                     }
                                                     _effects.emit(AuthActivityEffect.NavigateToMainScreen)
@@ -95,7 +95,7 @@ internal class AuthSignUpActivityViewModel @Inject constructor(
                                             },
                                             onCancel = {
                                                 viewModelScope.launchIO {
-                                                    profileManager.updateProfile {
+                                                    settingsManager.update {
                                                         it.copy(biometry = false)
                                                     }
                                                     _effects.emit(AuthActivityEffect.NavigateToMainScreen)

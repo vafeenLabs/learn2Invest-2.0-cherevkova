@@ -1,6 +1,6 @@
 package ru.surf.learn2invest.domain.cryptography.usecase
 
-import ru.surf.learn2invest.domain.domain_models.Profile
+import ru.surf.learn2invest.domain.domain_models.Settings
 import javax.inject.Inject
 
 /**
@@ -22,7 +22,7 @@ class VerifyPINUseCase @Inject constructor(
      * @param password   PIN-код для проверки.
      * @return True, если введённый PIN-код соответствует хэшированному значению, иначе false.
      */
-    operator fun invoke(user: Profile, password: String): Boolean =
+    operator fun invoke(user: Settings, password: String): Boolean =
         getHashedPasswordUseCase.invoke(user, password) == user.hash
 }
 

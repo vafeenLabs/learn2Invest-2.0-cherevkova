@@ -26,7 +26,7 @@ import ru.surf.learn2invest.domain.domain_models.AssetBalanceHistory
 import ru.surf.learn2invest.domain.domain_models.AssetInvest
 import ru.surf.learn2invest.domain.network.ResponseResult
 import ru.surf.learn2invest.domain.network.usecase.GetCoinReviewUseCase
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -38,7 +38,7 @@ import javax.inject.Inject
  * Отвечает за получение данных о балансе активов, их изменениях, а также за обновление
  * данных о ценах активов и вычисление изменений в портфеле.
  *
- * @param profileManager Менеджер профиля пользователя, который предоставляет доступ к данным
+ * @param settingsManager Менеджер профиля пользователя, который предоставляет доступ к данным
  *                       профиля, таким как баланс активов и фиатный баланс.
  * @param getAllAssetInvestUseCase UseCase для получения всех активов, в которые был сделан вклад.
  * @param getAllAssetBalanceHistoryUseCase UseCase для получения истории баланса активов пользователя.
@@ -49,7 +49,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 internal class PortfolioFragmentViewModel @Inject constructor(
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
     private val getAllAssetInvestUseCase: GetAllAssetInvestUseCase,
     private val getAllAssetBalanceHistoryUseCase: GetAllAssetBalanceHistoryUseCase,
     private val insertAssetBalanceHistoryUseCase: InsertAssetBalanceHistoryUseCase,
@@ -105,7 +105,7 @@ internal class PortfolioFragmentViewModel @Inject constructor(
 
     init {
         viewModelScope.launchIO {
-            profileManager.profileFlow.collectLatest { profile ->
+            settingsManager.settingsFlow.collectLatest { profile ->
                 _state.update {
                     it.copy(fiatBalance = profile.fiatBalance, assetBalance = profile.assetBalance)
                 }
@@ -243,7 +243,7 @@ internal class PortfolioFragmentViewModel @Inject constructor(
                 }
             }
         }
-        profileManager.updateProfile {
+        settingsManager.update {
             it.copy(assetBalance = totalCurrentValue)
         }
         _state.update { it.copy(priceChanges = priceChanges) }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "72a7373aa96b4b728f3a8b324de61a2c",
+    "identityHash": "4674b45e1b20c76079a6839355427f34",
     "entities": [
       {
         "tableName": "AssetBalanceHistoryEntity",
@@ -73,64 +73,6 @@
             "columnName": "amount",
             "affinity": "INTEGER",
             "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
-          "columnNames": [
-            "id"
-          ]
-        }
-      },
-      {
-        "tableName": "ProfileEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `firstName` TEXT NOT NULL, `lastName` TEXT NOT NULL, `biometry` INTEGER NOT NULL, `fiatBalance` REAL NOT NULL, `assetBalance` REAL NOT NULL, `hash` TEXT, `tradingPasswordHash` TEXT)",
-        "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "firstName",
-            "columnName": "firstName",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "lastName",
-            "columnName": "lastName",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "biometry",
-            "columnName": "biometry",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "fiatBalance",
-            "columnName": "fiatBalance",
-            "affinity": "REAL",
-            "notNull": true
-          },
-          {
-            "fieldPath": "assetBalance",
-            "columnName": "assetBalance",
-            "affinity": "REAL",
-            "notNull": true
-          },
-          {
-            "fieldPath": "hash",
-            "columnName": "hash",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "tradingPasswordHash",
-            "columnName": "tradingPasswordHash",
-            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -221,7 +163,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '72a7373aa96b4b728f3a8b324de61a2c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4674b45e1b20c76079a6839355427f34')"
     ]
   }
 }

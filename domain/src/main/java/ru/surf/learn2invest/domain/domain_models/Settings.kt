@@ -1,12 +1,8 @@
-package ru.surf.learn2invest.data.database_components.entity
-
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+package ru.surf.learn2invest.domain.domain_models
 
 
 /**
  * Профиль пользователя со всеми настройками
- * @param id [Первичный ключ в базе данных]
  * @param firstName [Имя ]
  * @param lastName [Фамилия ]
  * @param biometry  [Вкл/Выкл входа по биометрии]
@@ -15,9 +11,8 @@ import androidx.room.PrimaryKey
  * @param hash   [Хэш PIN-кода]
  * @param tradingPasswordHash   [Хэш Торгового пароля]
  */
-@Entity
-internal data class ProfileEntity(
-    @PrimaryKey(autoGenerate = true) var id: Int = 0,
+
+data class Settings(
     val firstName: String,
     val lastName: String,
     val biometry: Boolean,

@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import ru.surf.learn2invest.domain.domain_models.Profile
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.domain_models.Settings
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
 import ru.surf.learn2invest.presentation.R
 import javax.inject.Inject
@@ -20,12 +20,12 @@ import javax.inject.Inject
  * ViewModel для экрана регистрации. Обрабатывает логику обновления имени и фамилии пользователя,
  * а также валидацию введенных данных.
  *
- * @property profileManager Менеджер профиля для обновления данных пользователя.
+ * @property settingsManager Менеджер профиля для обновления данных пользователя.
  * @property context Контекст приложения, используется для получения строк ресурсов.
  */
 @HiltViewModel
 internal class SignUpActivityViewModel @Inject constructor(
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     /** Состояние экрана регистрации, доступно для наблюдения */
@@ -61,8 +61,8 @@ internal class SignUpActivityViewModel @Inject constructor(
      *
      * @param updating Функция, которая принимает текущий профиль и возвращает обновленный.
      */
-    private suspend fun updateProfile(updating: (Profile) -> Profile) {
-        profileManager.updateProfile(updating)
+    private suspend fun updateProfile(updating: (Settings) -> Settings) {
+        settingsManager.update(updating)
     }
 
     /**

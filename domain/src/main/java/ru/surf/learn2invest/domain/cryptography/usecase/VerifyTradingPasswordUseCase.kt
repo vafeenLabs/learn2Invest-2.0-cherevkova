@@ -1,6 +1,6 @@
 package ru.surf.learn2invest.domain.cryptography.usecase
 
-import ru.surf.learn2invest.domain.services.ProfileManager
+import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import javax.inject.Inject
 
 /**
@@ -15,7 +15,7 @@ class VerifyTradingPasswordUseCase @Inject constructor(
      * Используется для генерации хэша из введённого пароля.
      */
     private val getHashedPasswordUseCase: GetHashedPasswordUseCase,
-    private val profileManager: ProfileManager,
+    private val settingsManager: SettingsManager,
 ) {
 
     /**
@@ -26,7 +26,7 @@ class VerifyTradingPasswordUseCase @Inject constructor(
      *         false - в случае несоответствия
      */
     operator fun invoke(tradingPassword: String): Boolean {
-        val user = profileManager.profileFlow.value
+        val user = settingsManager.settingsFlow.value
         return getHashedPasswordUseCase.invoke(user, tradingPassword) == user.tradingPasswordHash
     }
 }

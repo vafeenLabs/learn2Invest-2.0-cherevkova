@@ -124,7 +124,7 @@ internal class BuyDialog : CustomBottomSheetDialog() {
                     val lotsData = state.lotsData
                     val currentPrice = state.currentPrice
 
-                    val fiatBalance = state.profile.fiatBalance
+                    val fiatBalance = state.settings.fiatBalance
                     if (lotsData.isUpdateTVNeeded) {
                         enteringNumberOfLots.setText("${lotsData.lots}")
                     }
@@ -160,7 +160,7 @@ internal class BuyDialog : CustomBottomSheetDialog() {
                     priceNumber.text = state.currentPrice?.getWithCurrency()
                     balanceNum.text = fiatBalance.getWithCurrency()
                     enteringNumberOfLots.isEnabled = fiatBalance != 0f
-                    tradingPassword.isVisible = state.profile.tradingPasswordHash != null &&
+                    tradingPassword.isVisible = state.settings.tradingPasswordHash != null &&
                             fiatBalance != 0f
                 }
             }
