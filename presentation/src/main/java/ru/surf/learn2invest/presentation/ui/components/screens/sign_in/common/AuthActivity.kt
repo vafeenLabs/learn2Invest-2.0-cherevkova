@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.collectLatest
 import ru.surf.learn2invest.domain.cryptography.FingerprintAuthenticator
@@ -84,6 +85,9 @@ internal abstract class AuthActivity : AppCompatActivity() {
                     it.tapOn() // TODO move into side effects
                 }
             }
+            fingerprint.setOnClickListener {
+                viewModel.handleIntent(AuthActivityIntent.ShowFingerPrintDialogForAuth)
+            }
 
             // Обработка нажатия backspace
             backspace.setOnClickListener {
@@ -98,6 +102,7 @@ internal abstract class AuthActivity : AppCompatActivity() {
                     dot2.drawable.paintDotDependsOnState(state.dots.two)
                     dot3.drawable.paintDotDependsOnState(state.dots.three)
                     dot4.drawable.paintDotDependsOnState(state.dots.four)
+                    fingerprint.isVisible = state.isFingerprintButtonShowed
                 }
             }
             // Подписка на эффекты (side-effects)

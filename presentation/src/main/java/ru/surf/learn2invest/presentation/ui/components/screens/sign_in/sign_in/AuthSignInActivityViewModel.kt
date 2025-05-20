@@ -30,12 +30,22 @@ internal class AuthSignInActivityViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     settingsManager: SettingsManager,
     verifyPINUseCase: VerifyPINUseCase,
-    private val animateDotsUseCase: AnimateDotsUseCase,
+    animateDotsUseCase: AnimateDotsUseCase,
 ) : AuthActivityViewModel(
-    initialState = AuthActivityState(mainText = context.getString(R.string.enter_pin_str)),
+    initialState = AuthActivityState(
+        mainText = context.getString(R.string.enter_pin_str),
+        isFingerprintButtonShowed = true
+    ),
     settingsManager = settingsManager,
-    verifyPINUseCase = verifyPINUseCase
+    verifyPINUseCase = verifyPINUseCase,
+    animateDotsUseCase = animateDotsUseCase
 ) {
+    init {
+        viewModelScope.launchIO {
+            showFingerPrintBottomSheetForAuth()
+        }
+    }
+
     /**
      * Обрабатывает событие полного ввода PIN-кода.
      * Проверяет PIN, запускает анимацию точек и инициирует навигацию или сброс ввода.
@@ -45,29 +55,18 @@ internal class AuthSignInActivityViewModel @Inject constructor(
         if (verifyPIN()) {
             _effects.emit(AuthActivityEffect.AnimatePinDots { dot1, dot2, dot3, dot4 ->
                 animateDotsUseCase.invoke(
-                    dot1,
-                    dot2,
-                    dot3,
-                    dot4,
-                    needReturn = false,
-                    truePIN = true,
-                    {
-                        viewModelScope.launchIO {
-                            _effects.emit(AuthActivityEffect.NavigateToMainScreen)
-                            _effects.emit(AuthActivityEffect.Finish)
-                        }
-                    })
+                    dot1, dot2, dot3, dot4, needReturn = false, truePIN = true
+                ) {
+                    viewModelScope.launchIO {
+                        _effects.emit(AuthActivityEffect.NavigateToMainScreen)
+                        _effects.emit(AuthActivityEffect.Finish)
+                    }
+                }
             })
         } else {
             _effects.emit(AuthActivityEffect.AnimatePinDots { dot1, dot2, dot3, dot4 ->
                 animateDotsUseCase.invoke(
-                    dot1,
-                    dot2,
-                    dot3,
-                    dot4,
-                    needReturn = true,
-                    truePIN = false,
-                    onEnd = {
+                    dot1, dot2, dot3, dot4, needReturn = true, truePIN = false, onEnd = {
                         viewModelScope.launchIO {
                             _state.update { it.copy(pin = "", dots = allWhiteDots()) }
                             unblockKeyBoard()

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import ru.surf.learn2invest.domain.animator.usecase.AnimateDotsUseCase
 import ru.surf.learn2invest.domain.cryptography.usecase.VerifyPINUseCase
 import ru.surf.learn2invest.domain.services.settings_manager.SettingsManager
 import ru.surf.learn2invest.domain.utils.launchIO
@@ -22,6 +23,7 @@ internal abstract class AuthActivityViewModel(
     initialState: AuthActivityState,
     protected val verifyPINUseCase: VerifyPINUseCase,
     protected val settingsManager: SettingsManager,
+    protected val animateDotsUseCase: AnimateDotsUseCase,
 ) : ViewModel() {
     /** Поток данных профиля пользователя */
     protected val profileFlow = settingsManager.settingsFlow
@@ -31,7 +33,7 @@ internal abstract class AuthActivityViewModel(
     val state = _state.asStateFlow()
 
     /** Поток side-эффектов для управления UI */
-    protected val _effects = MutableSharedFlow<AuthActivityEffect>()
+    protected val _effects = MutableSharedFlow<AuthActivityEffect>(replay = 1)
     val effects = _effects.asSharedFlow()
 
     /**
@@ -44,8 +46,26 @@ internal abstract class AuthActivityViewModel(
             when (intent) {
                 is AuthActivityIntent.AddSymbolToPIN -> addSymbolToPin(intent.symbol)
                 AuthActivityIntent.RemoveLastSymbolFromPIN -> removeLastSymbolFromPIN()
+                AuthActivityIntent.ShowFingerPrintDialogForAuth -> showFingerPrintBottomSheetForAuth()
             }
         }
+    }
+
+    protected suspend fun showFingerPrintBottomSheetForAuth() {
+        _effects.emit(AuthActivityEffect.FingerPrintBottomSheet(onSuccess = {
+            viewModelScope.launchIO {
+                _effects.emit(AuthActivityEffect.AnimatePinDots { dot1, dot2, dot3, dot4 ->
+                    animateDotsUseCase.invoke(
+                        dot1, dot2, dot3, dot4, needReturn = false, truePIN = true
+                    ) {
+                        viewModelScope.launchIO {
+                            _effects.emit(AuthActivityEffect.NavigateToMainScreen)
+                            _effects.emit(AuthActivityEffect.Finish)
+                        }
+                    }
+                })
+            }
+        }))
     }
 
     /**

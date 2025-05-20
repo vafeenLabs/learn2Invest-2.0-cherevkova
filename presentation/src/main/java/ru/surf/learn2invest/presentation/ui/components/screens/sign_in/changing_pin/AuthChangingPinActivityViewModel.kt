@@ -30,14 +30,18 @@ import javax.inject.Inject
 @HiltViewModel
 internal class AuthChangingPinActivityViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val animateDotsUseCase: AnimateDotsUseCase,
+    animateDotsUseCase: AnimateDotsUseCase,
     private val updatePinUseCase: UpdatePinUseCase,
     verifyPINUseCase: VerifyPINUseCase,
     settingsManager: SettingsManager,
 ) : AuthActivityViewModel(
-    initialState = AuthActivityState(mainText = context.getString(R.string.enter_old_pin)),
+    initialState = AuthActivityState(
+        mainText = context.getString(R.string.enter_old_pin),
+        isFingerprintButtonShowed = false
+    ),
     settingsManager = settingsManager,
-    verifyPINUseCase = verifyPINUseCase
+    verifyPINUseCase = verifyPINUseCase,
+    animateDotsUseCase = animateDotsUseCase
 ) {
     private var isVerified = false
     private var firstPin = ""

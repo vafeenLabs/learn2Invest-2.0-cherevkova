@@ -10,6 +10,7 @@ package ru.surf.learn2invest.presentation.ui.components.screens.sign_in.common
 internal data class AuthActivityState(
     val mainText: String,
     val pin: String = "",
+    val isFingerprintButtonShowed: Boolean,
     val dots: AuthDotsState<AuthDotState> = AuthDotsState(
         one = AuthDotState.NULL,
         two = AuthDotState.NULL,

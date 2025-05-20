@@ -33,14 +33,18 @@ import javax.inject.Inject
 internal class AuthSignUpActivityViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val updatePinUseCase: UpdatePinUseCase,
-    private val animateDotsUseCase: AnimateDotsUseCase,
+    animateDotsUseCase: AnimateDotsUseCase,
     private val fingerprintAuthenticator: FingerprintAuthenticator,
     verifyPINUseCase: VerifyPINUseCase,
     settingsManager: SettingsManager,
 ) : AuthActivityViewModel(
-    initialState = AuthActivityState(mainText = context.getString(R.string.change_PIN)),
+    initialState = AuthActivityState(
+        mainText = context.getString(R.string.change_PIN),
+        isFingerprintButtonShowed = false
+    ),
     settingsManager = settingsManager,
-    verifyPINUseCase = verifyPINUseCase
+    verifyPINUseCase = verifyPINUseCase,
+    animateDotsUseCase = animateDotsUseCase
 ) {
     private var firstPin = ""
 
