@@ -1,4 +1,4 @@
-package ru.surf.learn2invest.data.network_components.responses
+package com.example.backenddto.dto
 
 import kotlinx.serialization.Serializable
 

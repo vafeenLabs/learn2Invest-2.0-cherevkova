@@ -14,7 +14,6 @@ package ru.surf.learn2invest.domain.domain_models
  * @property priceUsd Текущая цена коина в долларах США.
  * @property changePercent24Hr Процентное изменение цены за последние 24 часа.
  * @property vwap24Hr Средневзвешенная цена за 24 часа.
- * @property explorer Ссылка на обозреватель блокчейна для данного коина.
  */
 data class AugmentedCoinReview(
     val id: String,
@@ -28,5 +27,4 @@ data class AugmentedCoinReview(
     val priceUsd: Float,
     val changePercent24Hr: Float,
     val vwap24Hr: Float,
-    val explorer: String?
 )

@@ -1,6 +1,7 @@
 package ru.surf.learn2invest.presentation.ui.components.screens.fragments.asset_overview
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mikephil.charting.data.Entry
@@ -143,7 +144,9 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
                     (state.price * asset.amount).formatAsPrice(2).getWithCurrency()
                 } else null,
                 price = state.price,
-            )
+            ).also {
+                Log.e("state", "$it")
+            }
         }
 
     }
@@ -173,7 +176,9 @@ internal class AssetOverViewFragmentViewModel @AssistedInject constructor(
         realTimeUpdateJob = viewModelScope.launchIO {
             while (true) {
                 val result = getCoinReviewUseCase(id)
+                Log.e("success", "$result")
                 if (result is ResponseResult.Success) {
+                    Log.e("success", "${result.value}")
                     updateChartData(result)
                     _state.update { it.copy(price = result.value.priceUsd) }
                     updateStateDependsOnPrice()

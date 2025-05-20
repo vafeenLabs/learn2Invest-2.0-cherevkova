@@ -8,12 +8,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ActivityRetainedComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import ru.surf.learn2invest.data.services.coin_api_service.CoinAPIService
-import ru.surf.learn2invest.data.services.coin_api_service.RetrofitLinks
+import ru.surf.learn2invest.data.services.coin_api_service.impl.CoinApiServiceImpl
 import ru.surf.learn2invest.domain.network.NetworkRepository
 
 
@@ -32,16 +28,17 @@ internal object NetworkDIModule {
         networkRepositoryImpl
 
     @Provides
-    fun provideCoinAPIService(): CoinAPIService = Retrofit.Builder().baseUrl(RetrofitLinks.BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create())
-        .client(
-            OkHttpClient.Builder()
-                .addInterceptor(
-                    HttpLoggingInterceptor()
-                        .setLevel(HttpLoggingInterceptor.Level.BASIC)
-                )
-                .build()
-        )
-        .build()
-        .create(CoinAPIService::class.java)
+    fun provideCoinAPIService(impl: CoinApiServiceImpl): CoinAPIService = impl
+//    Retrofit.Builder().baseUrl(RetrofitLinks.BASE_URL)
+//        .addConverterFactory(GsonConverterFactory.create())
+//        .client(
+//            OkHttpClient.Builder()
+//                .addInterceptor(
+//                    HttpLoggingInterceptor()
+//                        .setLevel(HttpLoggingInterceptor.Level.BASIC)
+//                )
+//                .build()
+//        )
+//        .build()
+//        .create(CoinAPIService::class.java)
 }

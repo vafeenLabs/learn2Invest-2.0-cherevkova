@@ -1,7 +1,6 @@
 plugins {
     id("java-library")
     alias(libs.plugins.jetbrains.kotlin.jvm)
-    kotlin("plugin.serialization") version "1.9.0"
 }
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -29,6 +28,5 @@ dependencies {
     // Логирование (обязательно для работы)
     implementation(libs.logback.classic)
 
-    // Kotlinx Serialization
-    implementation(libs.kotlinx.serialization.json)
+    implementation(project(":backendDTO"))
 }
