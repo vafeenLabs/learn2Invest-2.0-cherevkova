@@ -47,5 +47,27 @@ internal class HostActivity : AppCompatActivity() {
 
         // Настройка нижней навигационной панели (Bottom Navigation) для работы с контроллером навигации
         binding.bottomNavigationView.setupWithNavController(navController)
+        binding.bottomNavigationView.setOnItemSelectedListener { menuItem ->
+            val navController = navHostFragment.navController
+            val currentDestinationId = navController.currentDestination?.id
+
+            if (currentDestinationId == menuItem.itemId) {
+                // Уже на этом экране — не навигируем
+                false
+            } else {
+                // Навигация с popUpTo, чтобы не создавать дубликаты в back stack
+                val navOptions = androidx.navigation.NavOptions.Builder()
+                    .setLaunchSingleTop(true) // Если уже вверху стека — не создаём новый экземпляр
+                    .setRestoreState(true)    // Восстанавливаем состояние, если фрагмент уже в back stack
+                    .setPopUpTo(
+                        menuItem.itemId,
+                        false
+                    ) // Убираем все фрагменты выше выбранного, но не удаляем сам
+                    .build()
+
+                navController.navigate(menuItem.itemId, null, navOptions)
+                true
+            }
+        }
     }
 }
