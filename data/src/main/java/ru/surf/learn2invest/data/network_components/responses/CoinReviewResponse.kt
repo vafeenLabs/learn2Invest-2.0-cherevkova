@@ -1,5 +1,7 @@
 package ru.surf.learn2invest.data.network_components.responses
 
+import kotlinx.serialization.Serializable
+
 /**
  * Ответ от API, содержащий информацию о криптовалюте (элемент массива).
  *
@@ -17,6 +19,7 @@ package ru.surf.learn2invest.data.network_components.responses
  * @property changePercent24Hr Процентное изменение цены за последние 24 часа.
  * @property vwap24Hr Средневзвешенная цена за 24 часа.
  */
+@Serializable
 internal data class CoinReviewResponse(
     val id: String,
     val rank: Int,

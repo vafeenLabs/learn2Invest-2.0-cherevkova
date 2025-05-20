@@ -1,11 +1,11 @@
-package ru.surf.learn2invest.data.network_components.responses
+package com.example.backenddto.dto
 
 import kotlinx.serialization.Serializable
 
 /**
- * Ответ от API, содержащий подробную информацию о криптовалюте.
+ * Ответ от API, содержащий информацию о криптовалюте (элемент массива).
  *
- * Используется для парсинга расширенных данных об активе.
+ * Используется для парсинга данных о рынке.
  *
  * @property id Идентификатор коина в API.
  * @property rank Ранг коина в общем списке.
@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializable
  * @property vwap24Hr Средневзвешенная цена за 24 часа.
  */
 @Serializable
-internal data class AugmentedCoinReviewResponse(
+internal data class CoinReviewResponse(
     val id: String,
     val rank: Int,
     val symbol: String,

@@ -1,17 +1,15 @@
 package ru.surf.learn2invest.data.network_components
 
-import android.util.Log
 import ru.surf.learn2invest.data.converters.AugmentedCoinReviewConverter
 import ru.surf.learn2invest.data.converters.CoinPriceConverter
 import ru.surf.learn2invest.data.converters.CoinReviewConverter
+import ru.surf.learn2invest.data.services.coin_api_service.CoinAPIService
+import ru.surf.learn2invest.data.services.coin_api_service.RetrofitLinks
 import ru.surf.learn2invest.domain.domain_models.AugmentedCoinReview
 import ru.surf.learn2invest.domain.domain_models.CoinPrice
 import ru.surf.learn2invest.domain.domain_models.CoinReview
 import ru.surf.learn2invest.domain.network.NetworkRepository
 import ru.surf.learn2invest.domain.network.ResponseResult
-import ru.surf.learn2invest.data.services.coin_api_service.RetrofitLinks
-import ru.surf.learn2invest.data.services.coin_api_service.CoinAPIService
-import ru.surf.learn2invest.data.services.coin_api_service.SafeGsonConverter
 import javax.inject.Inject
 
 /**
@@ -24,8 +22,6 @@ internal class NetworkRepositoryImpl @Inject constructor(
     private val coinPriceConverter: CoinPriceConverter,
     private val coinReviewConverter: CoinReviewConverter,
 ) : NetworkRepository {
-    private val safeGsonConverter = SafeGsonConverter()
-
 
     override suspend fun getCoinReview(id: String): ResponseResult<AugmentedCoinReview> =
         try {
