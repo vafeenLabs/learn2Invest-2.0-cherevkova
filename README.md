@@ -1,4 +1,4 @@
-# Learn2Invest
+# Learn2Invest-2.0-chery
 ![изображение](https://github.com/vafeen/learn2Invest/assets/67644124/f07c5098-a7da-4cb9-8f0d-de59f0486e6c)
 
 Learn2Invest это биржевой симмулятор для тренировки инвестиционных навыков, с использованием API [CoinCap](https://docs.coincap.io/). 
